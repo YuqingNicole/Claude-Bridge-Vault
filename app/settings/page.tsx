@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Settings, Pencil, Trash2, Check, X, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { VENDOR_CONFIG } from '@/lib/vendors';
 import type { SubKeyData, VendorId } from '@/lib/types';
+import { useLang, LangToggle } from '@/components/LangContext';
 
 interface KeyRow extends SubKeyData { key: string; }
 
@@ -14,6 +15,8 @@ interface EditState {
 }
 
 function KeySettingsRow({ row, onSaved, onDeleted }: { row: KeyRow; onSaved: () => void; onDeleted: () => void; }) {
+  const { t } = useLang();
+  const s = t.settings;
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<EditState>({
@@ -39,7 +42,7 @@ function KeySettingsRow({ row, onSaved, onDeleted }: { row: KeyRow; onSaved: () 
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Delete key "${row.name}"?`)) return;
+    if (!confirm(s.deleteConfirm(row.name))) return;
     await fetch('/api/v1/manage/keys', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -73,18 +76,26 @@ function KeySettingsRow({ row, onSaved, onDeleted }: { row: KeyRow; onSaved: () 
 
       {/* Stats bar */}
       <div className="flex items-center gap-4 px-4 pb-3 text-[11px] text-black/40 font-mono border-t border-black/5 pt-2">
-        <span>{row.usage} used</span>
+        <span>{row.usage} {s.used}</span>
         <span>·</span>
-        <span>{row.totalQuota != null ? `${remaining} remaining / ${row.totalQuota} total` : 'Unlimited quota'}</span>
+        <span>
+          {row.totalQuota != null
+            ? `${remaining} ${s.remaining} / ${row.totalQuota} ${s.total}`
+            : s.unlimitedQuota}
+        </span>
         <span>·</span>
-        <span>{row.expiresAt ? `Expires ${new Date(row.expiresAt).toLocaleDateString()}` : 'No expiry'}</span>
+        <span>
+          {row.expiresAt
+            ? `${s.expires} ${new Date(row.expiresAt).toLocaleDateString()}`
+            : s.noExpiry}
+        </span>
       </div>
 
       {/* Edit panel */}
       {editing && (
         <div className="border-t border-black/5 px-4 py-4 bg-black/[0.01] space-y-3">
           <div>
-            <label className="text-[10px] font-semibold text-black/40 uppercase tracking-widest block mb-1">Name</label>
+            <label className="text-[10px] font-semibold text-black/40 uppercase tracking-widest block mb-1">{s.name}</label>
             <input
               type="text"
               value={form.name}
@@ -95,12 +106,12 @@ function KeySettingsRow({ row, onSaved, onDeleted }: { row: KeyRow; onSaved: () 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-semibold text-black/40 uppercase tracking-widest block mb-1">
-                Total Quota <span className="normal-case font-normal">(blank = unlimited)</span>
+                {s.totalQuota} <span className="normal-case font-normal">({s.blankUnlimited})</span>
               </label>
               <input
                 type="number"
                 min="1"
-                placeholder="Unlimited"
+                placeholder={t.common.unlimited}
                 value={form.totalQuota}
                 onChange={e => setForm(f => ({ ...f, totalQuota: e.target.value }))}
                 className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black/30"
@@ -108,7 +119,7 @@ function KeySettingsRow({ row, onSaved, onDeleted }: { row: KeyRow; onSaved: () 
             </div>
             <div>
               <label className="text-[10px] font-semibold text-black/40 uppercase tracking-widest block mb-1">
-                Expires At <span className="normal-case font-normal">(blank = never)</span>
+                {s.expiresAt} <span className="normal-case font-normal">({s.blankNever})</span>
               </label>
               <input
                 type="date"
@@ -124,13 +135,13 @@ function KeySettingsRow({ row, onSaved, onDeleted }: { row: KeyRow; onSaved: () 
               disabled={saving}
               className="flex items-center gap-1.5 px-4 py-2 bg-black text-white text-xs font-semibold rounded-lg hover:bg-black/80 disabled:opacity-50 transition-colors"
             >
-              <Check size={12} /> {saving ? 'Saving...' : 'Save'}
+              <Check size={12} /> {saving ? t.common.saving : t.common.save}
             </button>
             <button
               onClick={() => setEditing(false)}
               className="flex items-center gap-1.5 px-4 py-2 border border-black/10 text-xs rounded-lg hover:bg-black/5 transition-colors"
             >
-              <X size={12} /> Cancel
+              <X size={12} /> {t.common.cancel}
             </button>
           </div>
         </div>
@@ -140,6 +151,8 @@ function KeySettingsRow({ row, onSaved, onDeleted }: { row: KeyRow; onSaved: () 
 }
 
 export default function SettingsPage() {
+  const { t } = useLang();
+  const s = t.settings;
   const [keys, setKeys] = useState<KeyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [vendorFilter, setVendorFilter] = useState<string>('all');
@@ -173,14 +186,15 @@ export default function SettingsPage() {
             </div>
             <div>
               <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                SETTINGS
-                <span className="text-[11px] px-2 py-0.5 border border-black/20 rounded-full uppercase">keys</span>
+                {s.title}
+                <span className="text-[11px] px-2 py-0.5 border border-black/20 rounded-full uppercase">{s.badge}</span>
               </h1>
-              <p className="text-sm text-black/60">Manage quota, expiry and key details</p>
+              <p className="text-sm text-black/60">{s.subtitle}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <a href="/" className="text-xs text-black/40 hover:text-black transition-colors">← Dashboard</a>
+            <LangToggle />
+            <a href="/" className="text-xs text-black/40 hover:text-black transition-colors">{s.back}</a>
           </div>
         </header>
 
@@ -194,19 +208,19 @@ export default function SettingsPage() {
                 vendorFilter === v ? 'bg-black text-white border-black' : 'border-black/10 text-black/50 hover:text-black hover:border-black/20 bg-white'
               }`}
             >
-              {v === 'all' ? 'All Vendors' : VENDOR_CONFIG[v as VendorId].label}
+              {v === 'all' ? s.allVendors : VENDOR_CONFIG[v as VendorId].label}
             </button>
           ))}
         </div>
 
         {/* Key list */}
         {loading ? (
-          <div className="text-center py-12 text-sm text-black/30">Loading...</div>
+          <div className="text-center py-12 text-sm text-black/30">{t.common.loading}</div>
         ) : keys.length === 0 ? (
           <div className="text-center py-12 border border-black/10 rounded-2xl bg-white">
-            <p className="text-sm text-black/30 mb-4">No keys found</p>
+            <p className="text-sm text-black/30 mb-4">{s.noKeys}</p>
             <a href="/" className="inline-flex items-center gap-1.5 text-xs font-semibold border border-black px-4 py-2 rounded-lg hover:bg-black hover:text-white transition-colors">
-              <Plus size={12} /> Create a Key
+              <Plus size={12} /> {s.createKey}
             </a>
           </div>
         ) : (
@@ -218,7 +232,7 @@ export default function SettingsPage() {
         )}
 
         <div className="mt-8 pt-4 border-t border-black/5 text-xs text-black/30 text-center">
-          Bridge Vault · {keys.length} key{keys.length !== 1 ? 's' : ''}
+          {s.footerKeys(keys.length)}
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { X, Plus } from 'lucide-react';
 import { VENDOR_CONFIG, isValidVendor } from '@/lib/vendors';
 import type { VendorId } from '@/lib/types';
 import { ShareSnippet } from './ShareSnippet';
+import { useLang } from './LangContext';
 
 interface GroupOption {
   key: string;
@@ -17,6 +18,7 @@ interface CreateKeyModalProps {
 }
 
 export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
+  const { t } = useLang();
   const [vendor, setVendor] = useState<VendorId>('claude');
   const [group, setGroup] = useState('');
   const [newGroupId, setNewGroupId] = useState('');
@@ -60,7 +62,7 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'Failed to create group');
+        setError(data.error || t.createKeyModal.errorNetworkGroup);
         return;
       }
       await loadGroups(vendor);
@@ -69,7 +71,7 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
       setNewGroupLabel('');
       setCreatingGroup(false);
     } catch {
-      setError('Network error — failed to create group');
+      setError(t.createKeyModal.errorNetworkGroup);
     }
   };
 
@@ -91,13 +93,13 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'Failed to create key');
+        setError(data.error || t.createKeyModal.errorNetwork);
         return;
       }
       setCreatedKey(data.subKey);
       onCreated();
     } catch {
-      setError('Network error');
+      setError(t.createKeyModal.errorNetwork);
     } finally {
       setLoading(false);
     }
@@ -107,7 +109,7 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50">
       <div className="bg-white text-black border border-black/10 rounded-2xl w-full max-w-md p-8 shadow-xl">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-semibold">Create Sub-Key</h3>
+          <h3 className="text-lg font-semibold">{t.createKeyModal.title}</h3>
           <button onClick={onClose} className="text-black/40 hover:text-black transition-colors">
             <X size={20} />
           </button>
@@ -115,13 +117,13 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
 
         {createdKey ? (
           <div className="space-y-4">
-            <div className="text-sm text-black/60 mb-2">Key created successfully. Share this snippet:</div>
+            <div className="text-sm text-black/60 mb-2">{t.createKeyModal.keyCreated}</div>
             <ShareSnippet subKey={createdKey} vendor={vendor} />
             <button
               onClick={onClose}
               className="w-full py-3 border border-black rounded-lg text-sm font-semibold hover:bg-black hover:text-white transition-colors mt-4"
             >
-              Done
+              {t.common.done}
             </button>
           </div>
         ) : (
@@ -129,7 +131,7 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
             {/* Vendor Select */}
             <div>
               <label className="text-[10px] font-semibold text-black/40 uppercase tracking-widest block mb-1.5">
-                Vendor
+                {t.createKeyModal.vendor}
               </label>
               <div className="flex gap-2">
                 {(Object.keys(VENDOR_CONFIG) as VendorId[]).map((v) => (
@@ -151,7 +153,7 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
             {/* Group Select */}
             <div>
               <label className="text-[10px] font-semibold text-black/40 uppercase tracking-widest block mb-1.5">
-                Group
+                {t.createKeyModal.group}
               </label>
               {groups.length > 0 && (
                 <select
@@ -171,14 +173,14 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
                 <div className="mt-2 space-y-2">
                   <input
                     type="text"
-                    placeholder="Group ID (e.g. botearn)"
+                    placeholder={t.createKeyModal.groupIdPlaceholder}
                     value={newGroupId}
                     onChange={(e) => setNewGroupId(e.target.value)}
                     className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black/30"
                   />
                   <input
                     type="text"
-                    placeholder="Group Label (e.g. BotEarn Warehouse)"
+                    placeholder={t.createKeyModal.groupLabelPlaceholder}
                     value={newGroupLabel}
                     onChange={(e) => setNewGroupLabel(e.target.value)}
                     className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black/30"
@@ -188,13 +190,13 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
                       onClick={handleCreateGroup}
                       className="flex-1 py-2 text-xs font-semibold bg-black text-white rounded-lg hover:bg-black/80 transition-colors"
                     >
-                      Create Group
+                      {t.createKeyModal.createGroup}
                     </button>
                     <button
                       onClick={() => setCreatingGroup(false)}
                       className="flex-1 py-2 text-xs font-semibold border border-black/10 rounded-lg hover:border-black/30 transition-colors"
                     >
-                      Cancel
+                      {t.common.cancel}
                     </button>
                   </div>
                 </div>
@@ -203,7 +205,7 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
                   onClick={() => setCreatingGroup(true)}
                   className="mt-2 flex items-center gap-1.5 text-xs text-black/40 hover:text-black transition-colors"
                 >
-                  <Plus size={12} /> New Group
+                  <Plus size={12} /> {t.createKeyModal.newGroup}
                 </button>
               )}
             </div>
@@ -211,11 +213,11 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
             {/* Name Input */}
             <div>
               <label className="text-[10px] font-semibold text-black/40 uppercase tracking-widest block mb-1.5">
-                Key Name
+                {t.createKeyModal.keyName}
               </label>
               <input
                 type="text"
-                placeholder="e.g. Partner Bot 1"
+                placeholder={t.createKeyModal.keyNamePlaceholder}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black/30"
@@ -226,12 +228,13 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] font-semibold text-black/40 uppercase tracking-widest block mb-1.5">
-                  Total Quota <span className="normal-case font-normal">(optional)</span>
+                  {t.createKeyModal.totalQuota}{' '}
+                  <span className="normal-case font-normal">({t.createKeyModal.optional})</span>
                 </label>
                 <input
                   type="number"
                   min="1"
-                  placeholder="Unlimited"
+                  placeholder={t.common.unlimited}
                   value={totalQuota}
                   onChange={(e) => setTotalQuota(e.target.value)}
                   className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black/30"
@@ -239,7 +242,8 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
               </div>
               <div>
                 <label className="text-[10px] font-semibold text-black/40 uppercase tracking-widest block mb-1.5">
-                  Expires At <span className="normal-case font-normal">(optional)</span>
+                  {t.createKeyModal.expiresAt}{' '}
+                  <span className="normal-case font-normal">({t.createKeyModal.optional})</span>
                 </label>
                 <input
                   type="date"
@@ -257,7 +261,7 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
               disabled={loading || !name.trim() || !group}
               className="w-full py-3 border border-black rounded-lg text-sm font-semibold hover:bg-black hover:text-white transition-colors disabled:opacity-40"
             >
-              {loading ? 'Creating...' : 'Generate Key'}
+              {loading ? t.common.creating : t.createKeyModal.generateKey}
             </button>
           </div>
         )}

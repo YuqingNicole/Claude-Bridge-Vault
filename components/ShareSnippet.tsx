@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { VENDOR_CONFIG } from '@/lib/vendors';
 import type { VendorId } from '@/lib/types';
+import { useLang } from './LangContext';
 
 interface ShareSnippetProps {
   subKey: string;
@@ -30,6 +31,7 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export function ShareSnippet({ subKey, vendor }: ShareSnippetProps) {
+  const { t } = useLang();
   const config = VENDOR_CONFIG[vendor];
   const baseUrl = (typeof window !== 'undefined' ? window.location.origin : '') + config.basePath;
 
@@ -46,7 +48,9 @@ export function ShareSnippet({ subKey, vendor }: ShareSnippetProps) {
       <div className="p-3 border border-black/10 rounded-xl bg-black/[0.02]">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <div className="text-[10px] font-semibold text-black/40 uppercase tracking-widest mb-1">Base URL</div>
+            <div className="text-[10px] font-semibold text-black/40 uppercase tracking-widest mb-1">
+              {t.shareSnippet.baseUrl}
+            </div>
             <code className="font-mono text-xs text-black">{baseUrl}</code>
           </div>
           <CopyButton text={baseUrl} />
@@ -56,7 +60,9 @@ export function ShareSnippet({ subKey, vendor }: ShareSnippetProps) {
       <div className="p-3 border border-black/10 rounded-xl bg-black/[0.02]">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <div className="text-[10px] font-semibold text-black/40 uppercase tracking-widest mb-1">API Key</div>
+            <div className="text-[10px] font-semibold text-black/40 uppercase tracking-widest mb-1">
+              {t.shareSnippet.apiKey}
+            </div>
             <code className="font-mono text-xs text-black">{subKey}</code>
           </div>
           <CopyButton text={subKey} />
@@ -66,12 +72,14 @@ export function ShareSnippet({ subKey, vendor }: ShareSnippetProps) {
       <div className="p-3 border border-black/10 rounded-xl bg-black/[0.02]">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <div className="text-[10px] font-semibold text-black/40 uppercase tracking-widest mb-1">Auth Header</div>
+            <div className="text-[10px] font-semibold text-black/40 uppercase tracking-widest mb-1">
+              {t.shareSnippet.authHeader}
+            </div>
             <code className="font-mono text-xs text-black">{config.authStyle}</code>
           </div>
           <CopyButton text={snippet} />
         </div>
-        <div className="text-[10px] text-black/40 mt-1">Copy Snippet copies full curl command</div>
+        <div className="text-[10px] text-black/40 mt-1">{t.shareSnippet.copyHint}</div>
       </div>
     </div>
   );

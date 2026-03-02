@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { VENDOR_CONFIG } from '@/lib/vendors';
 import type { VendorId, SubKeyData } from '@/lib/types';
 import { KeyTable } from './KeyTable';
+import { useLang } from './LangContext';
 
 interface KeyRow extends SubKeyData {
   key: string;
@@ -20,6 +21,7 @@ interface VendorCardProps {
 }
 
 export function VendorCard({ vendor }: VendorCardProps) {
+  const { t } = useLang();
   const config = VENDOR_CONFIG[vendor];
   const [groups, setGroups] = useState<GroupOption[]>([]);
   const [activeGroup, setActiveGroup] = useState<string>('');
@@ -104,10 +106,10 @@ export function VendorCard({ vendor }: VendorCardProps) {
       <div className="px-4 py-3">
         {groups.length === 0 ? (
           <div className="text-center py-6 text-sm text-black/30">
-            No groups yet. Create a key to get started.
+            {t.vendorCard.noGroups}
           </div>
         ) : loadingKeys ? (
-          <div className="text-center py-6 text-sm text-black/30">Loading...</div>
+          <div className="text-center py-6 text-sm text-black/30">{t.common.loading}</div>
         ) : (
           <KeyTable keys={keys} onDeleted={loadKeys} />
         )}

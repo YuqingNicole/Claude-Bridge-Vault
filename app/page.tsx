@@ -1,21 +1,25 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Shield, Plus } from 'lucide-react';
 import { VENDOR_CONFIG } from '@/lib/vendors';
 import type { VendorId } from '@/lib/types';
 import { VendorCard } from '@/components/VendorCard';
 import { CreateKeyModal } from '@/components/CreateKeyModal';
+import { DocsModal } from '@/components/DocsModal';
+import { useLang, LangToggle } from '@/components/LangContext';
 
 const VENDORS: VendorId[] = ['youragent', 'claude', 'openai', 'gemini'];
 
 export default function VaultDashboard() {
+  const { t } = useLang();
   const [activeVendor, setActiveVendor] = useState<VendorId>('youragent');
   const [showCreate, setShowCreate] = useState(false);
+  const [showDocs, setShowDocs] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
 
   const handleCreated = useCallback(() => {
-    setRefreshToken((t) => t + 1);
+    setRefreshToken((n) => n + 1);
   }, []);
 
   return (
@@ -34,17 +38,20 @@ export default function VaultDashboard() {
                   v2
                 </span>
               </h1>
-              <p className="text-sm text-black/60">Multi-Vendor API Gateway</p>
+              <p className="text-sm text-black/60">{t.dashboard.subtitle}</p>
             </div>
           </div>
 
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-black/80 transition-colors"
-          >
-            <Plus size={15} />
-            New Key
-          </button>
+          <div className="flex items-center gap-2">
+            <LangToggle />
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-black/80 transition-colors"
+            >
+              <Plus size={15} />
+              {t.dashboard.newKey}
+            </button>
+          </div>
         </header>
 
         {/* Vendor Rail */}
@@ -72,20 +79,29 @@ export default function VaultDashboard() {
 
         {/* Footer */}
         <div className="mt-8 pt-4 border-t border-black/5 flex items-center justify-between text-xs text-black/30">
-          <span>Bridge Vault · Multi-vendor proxy</span>
+          <span>{t.dashboard.footerLabel}</span>
           <div className="flex items-center gap-2">
-            <a href="/settings" className="px-3 py-1.5 border border-black/20 rounded-lg text-xs font-medium hover:bg-black hover:text-white hover:border-black transition-colors">Settings</a>
-            <a href="/query" className="px-3 py-1.5 border border-black/20 rounded-lg text-xs font-medium hover:bg-black hover:text-white hover:border-black transition-colors">Key Lookup →</a>
+            <button
+              onClick={() => setShowDocs(true)}
+              className="px-3 py-1.5 border border-black/20 rounded-lg text-xs font-medium hover:bg-black hover:text-white hover:border-black transition-colors"
+            >
+              {t.dashboard.docs}
+            </button>
+            <a href="/settings" className="px-3 py-1.5 border border-black/20 rounded-lg text-xs font-medium hover:bg-black hover:text-white hover:border-black transition-colors">
+              {t.dashboard.settings}
+            </a>
+            <a href="/query" className="px-3 py-1.5 border border-black/20 rounded-lg text-xs font-medium hover:bg-black hover:text-white hover:border-black transition-colors">
+              {t.dashboard.keyLookup}
+            </a>
           </div>
         </div>
       </div>
 
       {showCreate && (
-        <CreateKeyModal
-          onClose={() => setShowCreate(false)}
-          onCreated={handleCreated}
-        />
+        <CreateKeyModal onClose={() => setShowCreate(false)} onCreated={handleCreated} />
       )}
+
+      {showDocs && <DocsModal onClose={() => setShowDocs(false)} />}
     </div>
   );
 }

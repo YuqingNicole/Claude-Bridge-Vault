@@ -18,6 +18,7 @@ import {
 import type { SubKeyRecord } from '@/lib/types';
 import { VENDOR_CONFIG } from '@/lib/vendors';
 import { ShareSnippet } from '@/components/ShareSnippet';
+import { useLang, LangToggle } from '@/components/LangContext';
 
 const HISTORY_KEY = 'vault:query_history';
 const MAX_HISTORY = 20;
@@ -45,6 +46,8 @@ function saveHistory(entries: HistoryEntry[]) {
 }
 
 export default function UsageQuery() {
+  const { t } = useLang();
+  const q = t.query;
   const [keyInput, setKeyInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SubKeyRecord | null>(null);
@@ -57,8 +60,8 @@ export default function UsageQuery() {
   }, []);
 
   const handleQuery = async (key?: string) => {
-    const q = (key ?? keyInput).trim();
-    if (!q) return;
+    const queryKey = (key ?? keyInput).trim();
+    if (!queryKey) return;
     if (key) setKeyInput(key);
     setLoading(true);
     setError('');
@@ -66,30 +69,29 @@ export default function UsageQuery() {
     setShowShare(false);
 
     try {
-      const response = await fetch(`/api/v1/manage/keys/${encodeURIComponent(q)}`);
+      const response = await fetch(`/api/v1/manage/keys/${encodeURIComponent(queryKey)}`);
       if (response.ok) {
         const data = await response.json() as SubKeyRecord;
         setResult(data);
 
-        // prepend to history, dedupe by key
         const entry: HistoryEntry = {
-          key: q,
+          key: queryKey,
           name: data.name,
           vendor: data.vendor,
           group: data.group,
           usage: data.usage,
           queriedAt: new Date().toISOString(),
         };
-        const updated = [entry, ...loadHistory().filter((h) => h.key !== q)];
+        const updated = [entry, ...loadHistory().filter((h) => h.key !== queryKey)];
         saveHistory(updated);
         setHistory(updated);
       } else if (response.status === 404) {
-        setError('Invalid Security Key. No record found in vault.');
+        setError(q.errorNotFound);
       } else {
-        setError('Vault lookup failed. Please try again.');
+        setError(q.errorFailed);
       }
     } catch {
-      setError('Neural link timeout. Please try again.');
+      setError(q.errorTimeout);
     } finally {
       setLoading(false);
     }
@@ -117,15 +119,20 @@ export default function UsageQuery() {
             </div>
             <div>
               <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                KEY INQUIRY
-                <span className="text-[11px] px-2 py-0.5 border border-black/20 rounded-full uppercase">lookup</span>
+                {q.title}
+                <span className="text-[11px] px-2 py-0.5 border border-black/20 rounded-full uppercase">
+                  {q.badge}
+                </span>
               </h1>
-              <p className="text-sm text-black/60">Verify status and review vault usage</p>
+              <p className="text-sm text-black/60">{q.subtitle}</p>
             </div>
           </div>
-          <a href="/" className="text-xs text-black/40 hover:text-black transition-colors">
-            ← Dashboard
-          </a>
+          <div className="flex items-center gap-3">
+            <LangToggle />
+            <a href="/" className="text-xs text-black/40 hover:text-black transition-colors">
+              {q.back}
+            </a>
+          </div>
         </header>
 
         {/* Search Box */}
@@ -135,7 +142,7 @@ export default function UsageQuery() {
               <Search className="w-4 h-4 text-black/50" />
               <input
                 type="text"
-                placeholder="Enter your sk-vault-xxxx key..."
+                placeholder={q.placeholder}
                 className="flex-1 bg-transparent border-none focus:outline-none text-sm font-mono text-black placeholder:text-black/30"
                 value={keyInput}
                 onChange={(e) => setKeyInput(e.target.value)}
@@ -147,7 +154,7 @@ export default function UsageQuery() {
               disabled={loading}
               className="w-full sm:w-auto px-5 py-2.5 border border-black rounded-xl text-xs font-semibold tracking-[0.2em] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black hover:text-white transition-colors"
             >
-              {loading ? 'CHECKING' : 'QUERY'}
+              {loading ? q.checking : q.query}
               <ArrowRight size={12} />
             </button>
           </div>
@@ -175,14 +182,14 @@ export default function UsageQuery() {
                       {result.group}
                     </span>
                   </div>
-                  <div className="text-lg font-semibold">{result.name || 'Unnamed Key'}</div>
+                  <div className="text-lg font-semibold">{result.name || q.unnamed}</div>
                   <div className="text-xs font-mono text-black/60 mt-1 truncate max-w-[260px]">
                     {result.key}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-semibold leading-none">{result.usage}</div>
-                  <div className="text-[10px] uppercase tracking-[0.3em] text-black/50 mt-1">Calls</div>
+                  <div className="text-[10px] uppercase tracking-[0.3em] text-black/50 mt-1">{q.calls}</div>
                 </div>
               </div>
 
@@ -190,7 +197,7 @@ export default function UsageQuery() {
                 <div className="border border-black/10 rounded-xl p-3 bg-black/[0.02]">
                   <div className="flex items-center gap-1.5 text-black/50 mb-1.5">
                     <BarChart2 size={11} />
-                    <span className="text-[10px] uppercase tracking-[0.2em]">Total Quota</span>
+                    <span className="text-[10px] uppercase tracking-[0.2em]">{q.totalQuota}</span>
                   </div>
                   <div className="text-sm font-semibold">
                     {result.totalQuota != null ? result.totalQuota.toLocaleString() : '∞'}
@@ -199,14 +206,14 @@ export default function UsageQuery() {
                 <div className="border border-black/10 rounded-xl p-3 bg-black/[0.02]">
                   <div className="flex items-center gap-1.5 text-black/50 mb-1.5">
                     <Zap size={11} />
-                    <span className="text-[10px] uppercase tracking-[0.2em]">Used</span>
+                    <span className="text-[10px] uppercase tracking-[0.2em]">{q.used}</span>
                   </div>
                   <div className="text-sm font-semibold">{result.usage.toLocaleString()}</div>
                 </div>
                 <div className="border border-black/10 rounded-xl p-3 bg-black/[0.02]">
                   <div className="flex items-center gap-1.5 text-black/50 mb-1.5">
                     <BarChart2 size={11} />
-                    <span className="text-[10px] uppercase tracking-[0.2em]">Remaining</span>
+                    <span className="text-[10px] uppercase tracking-[0.2em]">{q.remaining}</span>
                   </div>
                   <div className="text-sm font-semibold">
                     {result.totalQuota != null
@@ -217,10 +224,10 @@ export default function UsageQuery() {
                 <div className="border border-black/10 rounded-xl p-3 bg-black/[0.02]">
                   <div className="flex items-center gap-1.5 text-black/50 mb-1.5">
                     <CalendarClock size={11} />
-                    <span className="text-[10px] uppercase tracking-[0.2em]">Expires</span>
+                    <span className="text-[10px] uppercase tracking-[0.2em]">{q.expires}</span>
                   </div>
                   <div className="text-sm font-semibold">
-                    {result.expiresAt ? new Date(result.expiresAt).toLocaleDateString() : 'Never'}
+                    {result.expiresAt ? new Date(result.expiresAt).toLocaleDateString() : t.common.never}
                   </div>
                 </div>
               </div>
@@ -229,23 +236,23 @@ export default function UsageQuery() {
                 <div className="border border-black/10 rounded-xl p-3 bg-black/[0.02]">
                   <div className="flex items-center gap-1.5 text-black/50 mb-1.5">
                     <Clock size={11} />
-                    <span className="text-[10px] uppercase tracking-[0.2em]">Created</span>
+                    <span className="text-[10px] uppercase tracking-[0.2em]">{q.created}</span>
                   </div>
                   <div className="text-xs font-mono">{new Date(result.createdAt).toLocaleDateString()}</div>
                 </div>
                 <div className="border border-black/10 rounded-xl p-3 bg-black/[0.02]">
                   <div className="flex items-center gap-1.5 text-black/50 mb-1.5">
                     <Zap size={11} />
-                    <span className="text-[10px] uppercase tracking-[0.2em]">Status</span>
+                    <span className="text-[10px] uppercase tracking-[0.2em]">{q.status}</span>
                   </div>
-                  <div className="text-xs font-semibold uppercase">Authenticated</div>
+                  <div className="text-xs font-semibold uppercase">{q.authenticated}</div>
                 </div>
               </div>
 
               <div className="border border-black/10 rounded-xl p-4 bg-black/[0.02] mb-4">
                 <div className="flex items-center gap-2 text-black/60 mb-1">
                   <Database size={11} />
-                  <span className="text-[10px] uppercase tracking-[0.3em]">Base URL</span>
+                  <span className="text-[10px] uppercase tracking-[0.3em]">{q.baseUrl}</span>
                 </div>
                 <code className="text-xs font-mono text-black/80 break-all">{result.baseUrl}</code>
               </div>
@@ -255,7 +262,7 @@ export default function UsageQuery() {
                 className="w-full flex items-center justify-center gap-2 py-2.5 border border-black rounded-xl text-xs font-semibold tracking-[0.3em] hover:bg-black hover:text-white transition-colors"
               >
                 <Share2 size={12} />
-                {showShare ? 'Hide Snippet' : 'Share Snippet'}
+                {showShare ? q.hideSnippet : q.shareSnippet}
               </button>
 
               {showShare && (
@@ -273,13 +280,13 @@ export default function UsageQuery() {
             <div className="flex items-center justify-between px-5 py-3 border-b border-black/5">
               <div className="flex items-center gap-2 text-xs font-semibold text-black/50 uppercase tracking-widest">
                 <History size={12} />
-                Query History
+                {q.queryHistory}
               </div>
               <button
                 onClick={clearHistory}
                 className="text-[10px] text-black/30 hover:text-red-500 transition-colors flex items-center gap-1"
               >
-                <Trash2 size={10} /> Clear all
+                <Trash2 size={10} /> {q.clearAll}
               </button>
             </div>
             <div className="divide-y divide-black/5">
@@ -302,7 +309,7 @@ export default function UsageQuery() {
                       <div className="text-[10px] font-mono text-black/30 truncate">{h.key}</div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="text-xs font-semibold">{h.usage} calls</div>
+                      <div className="text-xs font-semibold">{h.usage} {q.callsUnit}</div>
                       <div className="text-[10px] text-black/30">
                         {new Date(h.queriedAt).toLocaleDateString()}
                       </div>
@@ -321,7 +328,7 @@ export default function UsageQuery() {
         )}
 
         <div className="mt-8 pt-4 border-t border-black/5 text-xs text-black/30 text-center">
-          Bridge Vault · Key Lookup
+          {q.footerLabel}
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Copy, Check, Trash2, Share2 } from 'lucide-react';
 import type { SubKeyData } from '@/lib/types';
 import { ShareSnippet } from './ShareSnippet';
+import { useLang } from './LangContext';
 
 interface KeyRow extends SubKeyData {
   key: string;
@@ -35,11 +36,12 @@ function TruncatedKey({ value }: { value: string }) {
 }
 
 export function KeyTable({ keys, onDeleted }: KeyTableProps) {
+  const { t } = useLang();
   const [shareKey, setShareKey] = useState<KeyRow | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
   const handleDelete = async (key: string) => {
-    if (!confirm('Delete this key? This cannot be undone.')) return;
+    if (!confirm(t.keyTable.deleteConfirm)) return;
     setDeletingKey(key);
     try {
       await fetch('/api/v1/manage/keys', {
@@ -55,7 +57,7 @@ export function KeyTable({ keys, onDeleted }: KeyTableProps) {
 
   if (keys.length === 0) {
     return (
-      <div className="text-center py-8 text-sm text-black/30">No keys in this group</div>
+      <div className="text-center py-8 text-sm text-black/30">{t.keyTable.noKeys}</div>
     );
   }
 
@@ -65,10 +67,10 @@ export function KeyTable({ keys, onDeleted }: KeyTableProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-black/5 text-[10px] font-semibold text-black/40 uppercase tracking-widest">
-              <th className="text-left py-2 pr-4">Name</th>
-              <th className="text-left py-2 pr-4">Key</th>
-              <th className="text-right py-2 pr-4">Usage</th>
-              <th className="text-left py-2 pr-4">Last Used</th>
+              <th className="text-left py-2 pr-4">{t.keyTable.name}</th>
+              <th className="text-left py-2 pr-4">{t.keyTable.key}</th>
+              <th className="text-right py-2 pr-4">{t.keyTable.usage}</th>
+              <th className="text-left py-2 pr-4">{t.keyTable.lastUsed}</th>
               <th className="text-right py-2"></th>
             </tr>
           </thead>
@@ -110,7 +112,7 @@ export function KeyTable({ keys, onDeleted }: KeyTableProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50">
           <div className="bg-white text-black border border-black/10 rounded-2xl w-full max-w-md p-8 shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-base font-semibold">Share · {shareKey.name}</h3>
+              <h3 className="text-base font-semibold">{t.keyTable.shareTitle}{shareKey.name}</h3>
               <button onClick={() => setShareKey(null)} className="text-black/40 hover:text-black">
                 ✕
               </button>
@@ -120,7 +122,7 @@ export function KeyTable({ keys, onDeleted }: KeyTableProps) {
               onClick={() => setShareKey(null)}
               className="w-full mt-4 py-2.5 border border-black rounded-lg text-sm font-semibold hover:bg-black hover:text-white transition-colors"
             >
-              Close
+              {t.common.close}
             </button>
           </div>
         </div>

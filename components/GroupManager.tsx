@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, X, Pencil, Check } from 'lucide-react';
 import type { VendorId } from '@/lib/types';
+import { useLang } from './LangContext';
 
 interface GroupOption {
   hashKey: string;
@@ -16,6 +17,7 @@ interface GroupManagerProps {
 }
 
 export function GroupManager({ vendor, groups, onGroupsChanged }: GroupManagerProps) {
+  const { t } = useLang();
   const [adding, setAdding] = useState(false);
   const [groupId, setGroupId] = useState('');
   const [newLabel, setNewLabel] = useState('');
@@ -60,7 +62,7 @@ export function GroupManager({ vendor, groups, onGroupsChanged }: GroupManagerPr
   };
 
   const handleDelete = async (hashKey: string) => {
-    if (!confirm('Delete this group?')) return;
+    if (!confirm(t.groupManager.deleteConfirm)) return;
     await fetch('/api/v1/manage/groups', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -72,7 +74,7 @@ export function GroupManager({ vendor, groups, onGroupsChanged }: GroupManagerPr
   return (
     <div className="space-y-2">
       <div className="text-[10px] font-semibold text-black/40 uppercase tracking-widest mb-2">
-        Groups
+        {t.groupManager.label}
       </div>
 
       {groups.map((g) => (
@@ -137,14 +139,14 @@ export function GroupManager({ vendor, groups, onGroupsChanged }: GroupManagerPr
         <div className="border border-black/10 rounded-lg p-3 space-y-2">
           <input
             type="text"
-            placeholder="Group ID (e.g. botearn)"
+            placeholder={t.groupManager.groupIdPlaceholder}
             value={groupId}
             onChange={(e) => setGroupId(e.target.value)}
             className="w-full border border-black/10 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-black/30"
           />
           <input
             type="text"
-            placeholder="Label (e.g. BotEarn Warehouse)"
+            placeholder={t.groupManager.groupLabelPlaceholder}
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
@@ -156,7 +158,7 @@ export function GroupManager({ vendor, groups, onGroupsChanged }: GroupManagerPr
               disabled={loading || !groupId.trim() || !newLabel.trim()}
               className="flex-1 py-1.5 text-xs font-semibold bg-black text-white rounded-md hover:bg-black/80 disabled:opacity-40 transition-colors"
             >
-              {loading ? 'Adding...' : 'Add'}
+              {loading ? t.common.adding : t.common.add}
             </button>
             <button
               onClick={() => { setAdding(false); setGroupId(''); setNewLabel(''); }}
@@ -171,7 +173,7 @@ export function GroupManager({ vendor, groups, onGroupsChanged }: GroupManagerPr
           onClick={() => setAdding(true)}
           className="flex items-center gap-1.5 text-xs text-black/40 hover:text-black transition-colors"
         >
-          <Plus size={12} /> Add Group
+          <Plus size={12} /> {t.groupManager.addGroup}
         </button>
       )}
     </div>
