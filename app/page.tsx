@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { 
   Shield, 
   Key, 
@@ -7,10 +9,29 @@ import {
   Server, 
   Lock,
   ChevronRight,
-  Plus
+  Plus,
+  X,
+  Copy,
+  Check
 } from 'lucide-react';
 
 export default function VaultDashboard() {
+  const [activeModal, setActiveModal] = useState<null | 'trackA' | 'trackB'>(null);
+  const [copied, setCopied] = useState(false);
+  const [generatedKey, setGeneratedKey] = useState("");
+
+  const generateSubKey = (prefix: string) => {
+    const random = Math.random().toString(36).substring(2, 10);
+    const key = `sk-vault-${prefix}-${random}`;
+    setGeneratedKey(key);
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatedKey);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-slate-300 font-sans selection:bg-cyan-500/30">
       {/* Background Orbs */}
@@ -39,35 +60,13 @@ export default function VaultDashboard() {
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-xs font-mono text-emerald-400">SYSTEM READY</span>
             </div>
-            <button className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors">
-              <Plus className="w-5 h-5" />
-            </button>
           </div>
         </header>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          {[
-            { label: 'Active Tracks', value: '2', icon: Server, color: 'text-cyan-400' },
-            { label: 'Neural Traffic', value: '1.4GB', icon: Activity, color: 'text-blue-400' },
-            { label: 'Master Keys', value: '1', icon: Key, color: 'text-purple-400' },
-            { label: 'Sub-Keys', value: '24', icon: Database, color: 'text-indigo-400' },
-          ].map((stat, i) => (
-            <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl hover:bg-white/[0.07] transition-all group">
-              <div className="flex items-center justify-between mb-4">
-                <stat.icon className={`w-5 h-5 ${stat.color} group-hover:scale-110 transition-transform`} />
-                <span className="text-[10px] font-bold text-slate-600 tracking-widest uppercase">Live</span>
-              </div>
-              <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
-              <div className="text-xs text-slate-500 font-medium uppercase tracking-wider">{stat.label}</div>
-            </div>
-          ))}
-        </div>
 
         {/* Tracks Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {/* Track A: BotEarn */}
-          <div className="bg-gradient-to-br from-white/[0.05] to-transparent border border-white/10 rounded-3xl p-8 backdrop-blur-2xl relative overflow-hidden group">
+          <div className="bg-gradient-to-br from-white/[0.05] to-transparent border border-white/10 rounded-3xl p-8 backdrop-blur-2xl relative overflow-hidden group hover:border-cyan-500/30 transition-all">
             <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
               <Database size={120} />
             </div>
@@ -79,21 +78,19 @@ export default function VaultDashboard() {
                 <h3 className="text-xl font-bold text-white">Track A: BotEarn Warehouse</h3>
               </div>
               <p className="text-slate-400 text-sm mb-8 leading-relaxed max-w-sm">
-                Collaborative neural distribution for production. Shared capacity with automated sub-key rotation and usage billing.
+                Collaborative neural distribution. Click below to generate new Sub-Keys for external agents.
               </p>
-              <div className="flex items-center gap-4">
-                <button className="px-6 py-2.5 bg-white text-black font-bold rounded-xl text-sm hover:bg-cyan-50 transition-colors flex items-center gap-2">
-                  Launch Manager <ChevronRight size={16} />
-                </button>
-                <button className="px-6 py-2.5 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-sm hover:bg-white/10 transition-colors">
-                  API Specs
-                </button>
-              </div>
+              <button 
+                onClick={() => { setActiveModal('trackA'); generateSubKey('botearn'); }}
+                className="px-6 py-2.5 bg-white text-black font-bold rounded-xl text-sm hover:bg-cyan-50 transition-colors flex items-center gap-2"
+              >
+                Launch Manager <ChevronRight size={16} />
+              </button>
             </div>
           </div>
 
           {/* Track B: Internal */}
-          <div className="bg-gradient-to-br from-white/[0.05] to-transparent border border-white/10 rounded-3xl p-8 backdrop-blur-2xl relative overflow-hidden group">
+          <div className="bg-gradient-to-br from-white/[0.05] to-transparent border border-white/10 rounded-3xl p-8 backdrop-blur-2xl relative overflow-hidden group hover:border-purple-500/30 transition-all">
             <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
               <Lock size={120} />
             </div>
@@ -105,44 +102,57 @@ export default function VaultDashboard() {
                 <h3 className="text-xl font-bold text-white">Track B: Private Vault</h3>
               </div>
               <p className="text-slate-400 text-sm mb-8 leading-relaxed max-w-sm">
-                Isolated neural instance for internal R&D. Direct Master Key pass-through with zero-log security protocols.
+                Isolated neural instance. Secured Master Key access for internal R&D nodes.
               </p>
-              <div className="flex items-center gap-4">
-                <button className="px-6 py-2.5 bg-purple-600 text-white font-bold rounded-xl text-sm hover:bg-purple-500 transition-colors flex items-center gap-2 shadow-lg shadow-purple-900/20">
-                  Enter Vault <ChevronRight size={16} />
-                </button>
-                <button className="px-6 py-2.5 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-sm hover:bg-white/10 transition-colors">
-                  Network Logs
-                </button>
-              </div>
+              <button 
+                onClick={() => { setActiveModal('trackB'); generateSubKey('private'); }}
+                className="px-6 py-2.5 bg-purple-600 text-white font-bold rounded-xl text-sm hover:bg-purple-500 transition-colors flex items-center gap-2"
+              >
+                Enter Vault <ChevronRight size={16} />
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Recent Traffic Table Area */}
-        <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-2xl">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="font-bold text-white tracking-tight uppercase text-sm">Neural Activity Feed</h3>
-            <span className="text-xs text-slate-500 font-mono">ID: 0x92...F2</span>
-          </div>
-          <div className="flex flex-col gap-3">
-            {[1, 2, 3].map((_, i) => (
-              <div key={i} className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/5 rounded-xl hover:border-white/10 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="w-8 h-8 bg-slate-800 rounded flex items-center justify-center text-[10px] font-bold text-slate-500">POST</div>
-                  <div>
-                    <div className="text-sm font-bold text-white tracking-tight">/api/v1/botearn/messages</div>
-                    <div className="text-[10px] text-slate-500 font-mono">LATENCY: 482ms</div>
+        {/* Modal Overlay */}
+        {activeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+            <div className="bg-[#121215] border border-white/10 rounded-3xl w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  {activeModal === 'trackA' ? <Database className="w-4 h-4 text-cyan-400"/> : <Lock className="w-4 h-4 text-purple-400"/>}
+                  {activeModal === 'trackA' ? 'BotEarn Key Generator' : 'Private Key Access'}
+                </h3>
+                <button onClick={() => setActiveModal(null)} className="text-slate-500 hover:text-white transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-white/5 border border-white/5 rounded-2xl">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">New Neural Sub-Key</label>
+                  <div className="flex items-center gap-2">
+                    <code className="text-sm font-mono text-cyan-400 flex-1 truncate">{generatedKey}</code>
+                    <button onClick={copyToClipboard} className="p-2 hover:bg-white/5 rounded-lg transition-colors">
+                      {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                    </button>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-bold text-indigo-400">200 OK</div>
-                  <div className="text-[10px] text-slate-600 font-mono">12:04:22 UTC</div>
+                
+                <div className="text-[11px] text-slate-500 leading-relaxed bg-blue-500/5 p-4 rounded-xl border border-blue-500/10">
+                  <p>💡 Use this key in your target agent's header as <code className="text-slate-300">x-api-key</code>. All traffic will be routed through the {activeModal === 'trackA' ? 'BotEarn' : 'Private'} track.</p>
                 </div>
+
+                <button 
+                  onClick={() => setActiveModal(null)}
+                  className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-sm transition-all"
+                >
+                  Close & Deploy
+                </button>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
