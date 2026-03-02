@@ -23,6 +23,8 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
   const [newGroupLabel, setNewGroupLabel] = useState('');
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [name, setName] = useState('');
+  const [totalQuota, setTotalQuota] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
   const [groups, setGroups] = useState<GroupOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [createdKey, setCreatedKey] = useState<string | null>(null);
@@ -79,7 +81,13 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
       const res = await fetch('/api/v1/manage/keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), vendor, group }),
+        body: JSON.stringify({
+          name: name.trim(),
+          vendor,
+          group,
+          totalQuota: totalQuota ? parseInt(totalQuota, 10) : null,
+          expiresAt: expiresAt || null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -210,9 +218,36 @@ export function CreateKeyModal({ onClose, onCreated }: CreateKeyModalProps) {
                 placeholder="e.g. Partner Bot 1"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                 className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black/30"
               />
+            </div>
+
+            {/* Quota + Expiry */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-semibold text-black/40 uppercase tracking-widest block mb-1.5">
+                  Total Quota <span className="normal-case font-normal">(optional)</span>
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Unlimited"
+                  value={totalQuota}
+                  onChange={(e) => setTotalQuota(e.target.value)}
+                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black/30"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-black/40 uppercase tracking-widest block mb-1.5">
+                  Expires At <span className="normal-case font-normal">(optional)</span>
+                </label>
+                <input
+                  type="date"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-black/30"
+                />
+              </div>
             </div>
 
             {error && <p className="text-xs text-red-500">{error}</p>}

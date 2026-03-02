@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
           usage: typeof parsed.usage === 'number' ? parsed.usage : 0,
           createdAt: typeof parsed.createdAt === 'string' ? parsed.createdAt : new Date().toISOString(),
           lastUsed: typeof parsed.lastUsed === 'string' ? parsed.lastUsed : null,
+          totalQuota: null,
+          expiresAt: null,
         };
 
         await redis.hset('vault:subkeys', { [key]: JSON.stringify(newData) });

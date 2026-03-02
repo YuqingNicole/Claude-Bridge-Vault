@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import {
   Search,
-  Activity,
   Clock,
   Database,
   ShieldCheck,
@@ -11,6 +10,8 @@ import {
   ArrowRight,
   AlertCircle,
   Share2,
+  BarChart2,
+  CalendarClock,
 } from 'lucide-react';
 import type { SubKeyRecord } from '@/lib/types';
 import { VENDOR_CONFIG } from '@/lib/vendors';
@@ -116,20 +117,57 @@ export default function UsageQuery() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div className="border border-black/10 rounded-xl p-4 bg-black/[0.02]">
-                  <div className="flex items-center gap-2 text-black/60 mb-2">
-                    <Clock size={12} />
-                    <span className="text-[10px] uppercase tracking-[0.3em]">Created</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div className="border border-black/10 rounded-xl p-3 bg-black/[0.02]">
+                  <div className="flex items-center gap-1.5 text-black/50 mb-1.5">
+                    <BarChart2 size={11} />
+                    <span className="text-[10px] uppercase tracking-[0.2em]">Total Quota</span>
                   </div>
-                  <div className="text-xs font-mono">
-                    {new Date(result.createdAt).toLocaleDateString()}
+                  <div className="text-sm font-semibold">
+                    {result.totalQuota != null ? result.totalQuota.toLocaleString() : '∞'}
                   </div>
                 </div>
-                <div className="border border-black/10 rounded-xl p-4 bg-black/[0.02]">
-                  <div className="flex items-center gap-2 text-black/60 mb-2">
-                    <Zap size={12} />
-                    <span className="text-[10px] uppercase tracking-[0.3em]">Status</span>
+                <div className="border border-black/10 rounded-xl p-3 bg-black/[0.02]">
+                  <div className="flex items-center gap-1.5 text-black/50 mb-1.5">
+                    <Zap size={11} />
+                    <span className="text-[10px] uppercase tracking-[0.2em]">Used</span>
+                  </div>
+                  <div className="text-sm font-semibold">{result.usage.toLocaleString()}</div>
+                </div>
+                <div className="border border-black/10 rounded-xl p-3 bg-black/[0.02]">
+                  <div className="flex items-center gap-1.5 text-black/50 mb-1.5">
+                    <BarChart2 size={11} />
+                    <span className="text-[10px] uppercase tracking-[0.2em]">Remaining</span>
+                  </div>
+                  <div className="text-sm font-semibold">
+                    {result.totalQuota != null
+                      ? Math.max(0, result.totalQuota - result.usage).toLocaleString()
+                      : '∞'}
+                  </div>
+                </div>
+                <div className="border border-black/10 rounded-xl p-3 bg-black/[0.02]">
+                  <div className="flex items-center gap-1.5 text-black/50 mb-1.5">
+                    <CalendarClock size={11} />
+                    <span className="text-[10px] uppercase tracking-[0.2em]">Expires</span>
+                  </div>
+                  <div className="text-sm font-semibold">
+                    {result.expiresAt ? new Date(result.expiresAt).toLocaleDateString() : 'Never'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <div className="border border-black/10 rounded-xl p-3 bg-black/[0.02]">
+                  <div className="flex items-center gap-1.5 text-black/50 mb-1.5">
+                    <Clock size={11} />
+                    <span className="text-[10px] uppercase tracking-[0.2em]">Created</span>
+                  </div>
+                  <div className="text-xs font-mono">{new Date(result.createdAt).toLocaleDateString()}</div>
+                </div>
+                <div className="border border-black/10 rounded-xl p-3 bg-black/[0.02]">
+                  <div className="flex items-center gap-1.5 text-black/50 mb-1.5">
+                    <Zap size={11} />
+                    <span className="text-[10px] uppercase tracking-[0.2em]">Status</span>
                   </div>
                   <div className="text-xs font-semibold uppercase">Authenticated</div>
                 </div>

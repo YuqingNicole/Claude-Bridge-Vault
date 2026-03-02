@@ -48,6 +48,8 @@ export async function POST(req: NextRequest) {
     const name = typeof payload?.name === 'string' ? payload.name.trim() : '';
     const vendor = typeof payload?.vendor === 'string' ? payload.vendor.trim() : '';
     const group = typeof payload?.group === 'string' ? payload.group.trim() : '';
+    const totalQuota = typeof payload?.totalQuota === 'number' ? Math.floor(payload.totalQuota) : null;
+    const expiresAt = typeof payload?.expiresAt === 'string' && payload.expiresAt ? payload.expiresAt : null;
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -71,6 +73,8 @@ export async function POST(req: NextRequest) {
       usage: 0,
       createdAt: new Date().toISOString(),
       lastUsed: null,
+      totalQuota,
+      expiresAt,
     };
 
     await redis.hset('vault:subkeys', { [subKey]: JSON.stringify(keyData) });

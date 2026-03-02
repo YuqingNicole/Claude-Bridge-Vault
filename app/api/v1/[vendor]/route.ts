@@ -47,6 +47,18 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Invalid or mismatched key' }, { status: 403 });
     }
 
+    const kd = keyData as { expiresAt?: string | null; totalQuota?: number | null; usage?: number };
+
+    if (kd.expiresAt && new Date(kd.expiresAt) < new Date()) {
+      return NextResponse.json({ error: 'Key expired' }, { status: 403 });
+    }
+
+    if (kd.totalQuota !== null && kd.totalQuota !== undefined) {
+      if ((kd.usage ?? 0) >= kd.totalQuota) {
+        return NextResponse.json({ error: 'Quota exceeded' }, { status: 429 });
+      }
+    }
+
     const rawBody = await req.text();
     const upstream = buildUpstreamRequest(vendor, masterKey, rawBody);
 

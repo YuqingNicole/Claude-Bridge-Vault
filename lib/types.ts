@@ -17,6 +17,8 @@ export interface SubKeyData {
   usage: number;
   createdAt: string;
   lastUsed: string | null;
+  totalQuota: number | null;   // null = unlimited
+  expiresAt: string | null;    // null = no expiry
 }
 
 export interface SubKeyRecord extends SubKeyData {
