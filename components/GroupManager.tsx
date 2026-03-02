@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X, Pencil, Check } from 'lucide-react';
 import type { VendorId } from '@/lib/types';
 
 interface GroupOption {
@@ -18,25 +18,45 @@ interface GroupManagerProps {
 export function GroupManager({ vendor, groups, onGroupsChanged }: GroupManagerProps) {
   const [adding, setAdding] = useState(false);
   const [groupId, setGroupId] = useState('');
-  const [label, setLabel] = useState('');
+  const [newLabel, setNewLabel] = useState('');
   const [loading, setLoading] = useState(false);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState('');
 
   const handleAdd = async () => {
-    if (!groupId.trim() || !label.trim()) return;
+    if (!groupId.trim() || !newLabel.trim()) return;
     setLoading(true);
     try {
-      await fetch('/api/v1/manage/groups', {
+      const res = await fetch('/api/v1/manage/groups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendor, groupId: groupId.trim(), label: label.trim() }),
+        body: JSON.stringify({ vendor, groupId: groupId.trim(), label: newLabel.trim() }),
       });
-      setGroupId('');
-      setLabel('');
-      setAdding(false);
-      onGroupsChanged();
+      if (res.ok) {
+        setGroupId('');
+        setNewLabel('');
+        setAdding(false);
+        onGroupsChanged();
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEdit = (g: GroupOption) => {
+    setEditingKey(g.hashKey);
+    setEditLabel(g.label);
+  };
+
+  const handleSaveEdit = async (hashKey: string) => {
+    if (!editLabel.trim()) return;
+    await fetch('/api/v1/manage/groups', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: hashKey, label: editLabel.trim() }),
+    });
+    setEditingKey(null);
+    onGroupsChanged();
   };
 
   const handleDelete = async (hashKey: string) => {
@@ -54,20 +74,61 @@ export function GroupManager({ vendor, groups, onGroupsChanged }: GroupManagerPr
       <div className="text-[10px] font-semibold text-black/40 uppercase tracking-widest mb-2">
         Groups
       </div>
+
       {groups.map((g) => (
         <div
           key={g.hashKey}
           className="flex items-center justify-between px-3 py-2 border border-black/5 rounded-lg bg-black/[0.01]"
         >
-          <span className="text-sm">{g.label}</span>
-          <div className="flex items-center gap-1">
+          {editingKey === g.hashKey ? (
+            <input
+              autoFocus
+              value={editLabel}
+              onChange={(e) => setEditLabel(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveEdit(g.hashKey);
+                if (e.key === 'Escape') setEditingKey(null);
+              }}
+              className="flex-1 text-sm border-b border-black/20 bg-transparent focus:outline-none mr-2"
+            />
+          ) : (
+            <span className="text-sm flex-1">{g.label}</span>
+          )}
+
+          <div className="flex items-center gap-1 flex-shrink-0">
             <code className="text-[10px] text-black/30 font-mono">{g.hashKey.split(':')[1]}</code>
-            <button
-              onClick={() => handleDelete(g.hashKey)}
-              className="p-1 rounded hover:bg-red-50 text-black/20 hover:text-red-500 transition-colors ml-2"
-            >
-              <Trash2 size={11} />
-            </button>
+
+            {editingKey === g.hashKey ? (
+              <>
+                <button
+                  onClick={() => handleSaveEdit(g.hashKey)}
+                  className="p-1 rounded hover:bg-green-50 text-black/30 hover:text-green-600 transition-colors ml-1"
+                >
+                  <Check size={11} />
+                </button>
+                <button
+                  onClick={() => setEditingKey(null)}
+                  className="p-1 rounded hover:bg-black/5 text-black/30 transition-colors"
+                >
+                  <X size={11} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => handleEdit(g)}
+                  className="p-1 rounded hover:bg-black/5 text-black/20 hover:text-black transition-colors ml-1"
+                >
+                  <Pencil size={11} />
+                </button>
+                <button
+                  onClick={() => handleDelete(g.hashKey)}
+                  className="p-1 rounded hover:bg-red-50 text-black/20 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 size={11} />
+                </button>
+              </>
+            )}
           </div>
         </div>
       ))}
@@ -84,20 +145,21 @@ export function GroupManager({ vendor, groups, onGroupsChanged }: GroupManagerPr
           <input
             type="text"
             placeholder="Label (e.g. BotEarn Warehouse)"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
             className="w-full border border-black/10 rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:border-black/30"
           />
           <div className="flex gap-2">
             <button
               onClick={handleAdd}
-              disabled={loading || !groupId.trim() || !label.trim()}
+              disabled={loading || !groupId.trim() || !newLabel.trim()}
               className="flex-1 py-1.5 text-xs font-semibold bg-black text-white rounded-md hover:bg-black/80 disabled:opacity-40 transition-colors"
             >
               {loading ? 'Adding...' : 'Add'}
             </button>
             <button
-              onClick={() => { setAdding(false); setGroupId(''); setLabel(''); }}
+              onClick={() => { setAdding(false); setGroupId(''); setNewLabel(''); }}
               className="p-1.5 border border-black/10 rounded-md hover:bg-black/5 transition-colors"
             >
               <X size={12} />

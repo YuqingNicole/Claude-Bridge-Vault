@@ -78,6 +78,36 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  try {
+    const payload = await req.json();
+    const key = typeof payload?.key === 'string' ? payload.key.trim() : '';
+    const label = typeof payload?.label === 'string' ? payload.label.trim() : '';
+
+    if (!key) {
+      return NextResponse.json({ error: 'key is required' }, { status: 400 });
+    }
+
+    if (!label) {
+      return NextResponse.json({ error: 'label is required' }, { status: 400 });
+    }
+
+    const existing = await redis.hget<string>('vault:groups', key);
+    const parsed = parseGroupRecord(existing as string | null);
+
+    if (!parsed) {
+      return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+    }
+
+    const updated: GroupData = { ...parsed, label };
+    await redis.hset('vault:groups', { [key]: JSON.stringify(updated) });
+    return NextResponse.json({ key, ...updated });
+  } catch (error) {
+    console.error('Failed to update group', error);
+    return NextResponse.json({ error: 'Unable to update group' }, { status: 500 });
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   try {
     const { key } = await req.json();
