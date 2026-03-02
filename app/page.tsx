@@ -1,156 +1,148 @@
-"use client";
-import React, { useState, useEffect } from 'react';
-import { Shield, Share2, Zap, Database, Copy, Check, Lock, Globe, Layers } from 'lucide-react';
+import React from 'react';
+import { 
+  Shield, 
+  Key, 
+  Activity, 
+  Database, 
+  Server, 
+  Lock,
+  ChevronRight,
+  Plus
+} from 'lucide-react';
 
-export default function ClaudeVault() {
-  const [track, setTrack] = useState('private');
-  const [result, setResult] = useState<{key:string, url: string} | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  const generate = () => {
-    const mockKey = `sk-vault-${track}-${Math.random().toString(36).substring(2, 12).toUpperCase()}`;
-    const mockUrl = `${window.location.protocol}//${window.location.host}/api/v1/${track}`;
-    setResult({ key: mockKey, url: mockUrl });
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
+export default function VaultDashboard() {
   return (
-    <div className="min-h-screen bg-[#050505] text-[#e2e8f0] selection:bg-cyan-500/30 font-mono relative overflow-hidden">
-      {/* 背景装饰：电子流光感 */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-900/20 blur-[120px] rounded-full"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 blur-[120px] rounded-full"></div>
+    <div className="min-h-screen bg-[#0a0a0c] text-slate-300 font-sans selection:bg-cyan-500/30">
+      {/* Background Orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-900/20 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/20 blur-[120px] rounded-full" />
+      </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-12 relative z-10">
-        {/* Header - 非线性布局 */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/30 bg-cyan-500/5 text-cyan-400 text-[10px] tracking-[0.2em] uppercase font-bold">
-              <Lock size={12}/> Secure API Refinery
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+        {/* Header */}
+        <header className="flex items-center justify-between mb-12 border-b border-white/5 pb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
+              <Shield className="text-white w-7 h-7" />
             </div>
-            <h1 className="text-5xl font-black tracking-tighter text-white uppercase italic">
-              Claude <span className="text-cyan-500 not-italic">Vault</span>
-            </h1>
-            <p className="text-slate-500 max-w-sm leading-relaxed font-sans border-l-2 border-slate-800 pl-4">
-              Dual-track isolation system for high-performance API distribution. Built for Nicole.
-            </p>
+            <div>
+              <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                CLAUDE BRIDGE VAULT <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-cyan-400">RC-1</span>
+              </h1>
+              <p className="text-slate-500 text-sm font-medium">Enterprise Neural Gateway</p>
+            </div>
           </div>
-          <div className="hidden md:block text-right">
-            <p className="text-[10px] text-slate-600 uppercase tracking-widest leading-none">System Status</p>
-            <p className="text-green-400 font-bold tracking-tighter text-lg uppercase">Core-Link Active</p>
+          
+          <div className="flex items-center gap-4">
+            <div className="px-4 py-2 bg-slate-900/50 border border-white/5 rounded-lg flex items-center gap-3">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-xs font-mono text-emerald-400">SYSTEM READY</span>
+            </div>
+            <button className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors">
+              <Plus className="w-5 h-5" />
+            </button>
           </div>
         </header>
 
-        <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* 左侧：炼制区 */}
-          <div className="lg:col-span-7 bg-white/[0.02] border border-white/10 backdrop-blur-md rounded-3xl p-8 shadow-2xl relative overflow-hidden group hover:border-cyan-500/30 transition-colors">
-            <div className="flex items-center justify-between mb-10">
-              <h2 className="text-xl font-bold flex items-center gap-3">
-                <Layers className="text-cyan-500" size={20}/> 
-                <span className="tracking-tight uppercase text-slate-200">Refining Terminal</span>
-              </h2>
-              <div className="text-[10px] text-slate-500 font-bold border-b border-slate-800 pb-1">0x-VAULT-GEN-01</div>
-            </div>
-
-            <div className="space-y-10">
-              <div className="space-y-4">
-                <label className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-black">Select Distro-Track</label>
-                <div className="flex flex-wrap gap-3">
-                  {[
-                    { id: 'botearn', label: 'BotEarn Net', icon: Globe },
-                    { id: 'private', label: 'Private Core', icon: Shield }
-                  ].map((item) => (
-                    <button 
-                      key={item.id}
-                      onClick={() => setTrack(item.id)}
-                      className={`flex items-center gap-3 py-4 px-6 rounded-2xl border transition-all duration-300 font-bold ${
-                        track === item.id 
-                        ? 'bg-cyan-500 text-black border-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.3)] scale-[1.02]' 
-                        : 'bg-black/40 border-white/5 text-slate-500 hover:border-white/20'
-                      }`}
-                    >
-                      <item.icon size={18}/>
-                      <span className="tracking-tight uppercase">{item.label}</span>
-                    </button>
-                  ))}
-                </div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          {[
+            { label: 'Active Tracks', value: '2', icon: Server, color: 'text-cyan-400' },
+            { label: 'Neural Traffic', value: '1.4GB', icon: Activity, color: 'text-blue-400' },
+            { label: 'Master Keys', value: '1', icon: Key, color: 'text-purple-400' },
+            { label: 'Sub-Keys', value: '24', icon: Database, color: 'text-indigo-400' },
+          ].map((stat, i) => (
+            <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-xl hover:bg-white/[0.07] transition-all group">
+              <div className="flex items-center justify-between mb-4">
+                <stat.icon className={`w-5 h-5 ${stat.color} group-hover:scale-110 transition-transform`} />
+                <span className="text-[10px] font-bold text-slate-600 tracking-widest uppercase">Live</span>
               </div>
+              <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
+              <div className="text-xs text-slate-500 font-medium uppercase tracking-wider">{stat.label}</div>
+            </div>
+          ))}
+        </div>
 
-              <button 
-                onClick={generate}
-                className="group w-full relative h-16 bg-white text-black font-black uppercase tracking-widest text-sm rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(255,255,255,0.1)] hover:shadow-cyan-500/20 active:scale-[0.98] transition-all"
-              >
-                <div className="absolute inset-0 bg-cyan-500 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <span className="relative z-10">Forge Distribution Credentials</span>
-              </button>
+        {/* Tracks Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          {/* Track A: BotEarn */}
+          <div className="bg-gradient-to-br from-white/[0.05] to-transparent border border-white/10 rounded-3xl p-8 backdrop-blur-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Database size={120} />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center border border-cyan-500/30">
+                  <Database className="text-cyan-400 w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-bold text-white">Track A: BotEarn Warehouse</h3>
+              </div>
+              <p className="text-slate-400 text-sm mb-8 leading-relaxed max-w-sm">
+                Collaborative neural distribution for production. Shared capacity with automated sub-key rotation and usage billing.
+              </p>
+              <div className="flex items-center gap-4">
+                <button className="px-6 py-2.5 bg-white text-black font-bold rounded-xl text-sm hover:bg-cyan-50 transition-colors flex items-center gap-2">
+                  Launch Manager <ChevronRight size={16} />
+                </button>
+                <button className="px-6 py-2.5 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-sm hover:bg-white/10 transition-colors">
+                  API Specs
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* 右侧：统计/预览 */}
-          <aside className="lg:col-span-5 space-y-6">
-            <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-6">
-              <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-6">Asset Intelligence</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-black/40 rounded-xl border border-white/5">
-                  <div className="text-xs text-slate-400 font-bold">Master Claude Key</div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <span className="text-[10px] text-green-400 font-black">ENCRYPTED</span>
-                  </div>
+          {/* Track B: Internal */}
+          <div className="bg-gradient-to-br from-white/[0.05] to-transparent border border-white/10 rounded-3xl p-8 backdrop-blur-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Lock size={120} />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center border border-purple-500/30">
+                  <Lock className="text-purple-400 w-5 h-5" />
                 </div>
-                <div className="flex items-center justify-between p-4 bg-black/40 rounded-xl border border-white/5">
-                  <div className="text-xs text-slate-400 font-bold">Active Sub-Keys</div>
-                  <div className="text-lg font-black text-white leading-none">0</div>
-                </div>
+                <h3 className="text-xl font-bold text-white">Track B: Private Vault</h3>
+              </div>
+              <p className="text-slate-400 text-sm mb-8 leading-relaxed max-w-sm">
+                Isolated neural instance for internal R&D. Direct Master Key pass-through with zero-log security protocols.
+              </p>
+              <div className="flex items-center gap-4">
+                <button className="px-6 py-2.5 bg-purple-600 text-white font-bold rounded-xl text-sm hover:bg-purple-500 transition-colors flex items-center gap-2 shadow-lg shadow-purple-900/20">
+                  Enter Vault <ChevronRight size={16} />
+                </button>
+                <button className="px-6 py-2.5 bg-white/5 border border-white/10 text-white font-bold rounded-xl text-sm hover:bg-white/10 transition-colors">
+                  Network Logs
+                </button>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* 结果显示区 - 极具个性的分享卡片 */}
-            {result && (
-              <div className="bg-cyan-500 text-black rounded-3xl p-6 shadow-[0_0_50px_rgba(6,182,212,0.2)] animate-in zoom-in-95 fade-in duration-500 overflow-hidden relative">
-                <div className="absolute top-0 right-0 p-4 rotate-12 opacity-20">
-                  <Share2 size={80}/>
+        {/* Recent Traffic Table Area */}
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-2xl">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="font-bold text-white tracking-tight uppercase text-sm">Neural Activity Feed</h3>
+            <span className="text-xs text-slate-500 font-mono">ID: 0x92...F2</span>
+          </div>
+          <div className="flex flex-col gap-3">
+            {[1, 2, 3].map((_, i) => (
+              <div key={i} className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/5 rounded-xl hover:border-white/10 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="w-8 h-8 bg-slate-800 rounded flex items-center justify-center text-[10px] font-bold text-slate-500">POST</div>
+                  <div>
+                    <div className="text-sm font-bold text-white tracking-tight">/api/v1/botearn/messages</div>
+                    <div className="text-[10px] text-slate-500 font-mono">LATENCY: 482ms</div>
+                  </div>
                 </div>
-                <h4 className="text-[10px] font-black uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <Check size={12}/> Ready for Deployment
-                </h4>
-                <div className="space-y-6 relative z-10">
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase opacity-60">Credentials (Key)</p>
-                    <div className="flex gap-2">
-                      <code className="text-xs font-black break-all flex-1">{result.key}</code>
-                      <button onClick={() => copyToClipboard(result.key)} className="hover:opacity-60 transition-opacity">
-                        {copied ? <Check size={16}/> : <Copy size={16}/>}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black uppercase opacity-60">Provisioned Endpoint</p>
-                    <div className="flex gap-2">
-                      <code className="text-[10px] font-bold break-all flex-1 italic">{result.url}</code>
-                      <button onClick={() => copyToClipboard(result.url)} className="hover:opacity-60 transition-opacity">
-                        <Share2 size={16}/>
-                      </button>
-                    </div>
-                  </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-indigo-400">200 OK</div>
+                  <div className="text-[10px] text-slate-600 font-mono">12:04:22 UTC</div>
                 </div>
               </div>
-            )}
-          </aside>
-        </main>
-
-        <footer className="mt-24 pt-8 border-t border-white/5 flex justify-between items-center opacity-30 group hover:opacity-100 transition-opacity">
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Vault Engine v1.0.4 - Designed by Bao 💎</p>
-          <div className="flex gap-4">
-            <div className="w-2 h-2 bg-white rounded-full"></div>
-            <div className="w-2 h-2 bg-white rounded-full"></div>
-            <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
+            ))}
           </div>
-        </footer>
+        </div>
       </div>
     </div>
   );
