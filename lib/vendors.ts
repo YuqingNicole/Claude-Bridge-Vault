@@ -25,8 +25,16 @@ export const VENDOR_CONFIG: Record<VendorId, VendorConfig> = {
     keyPrefix: 'gemini',
     basePath: '/api/v1/gemini',
   },
+  youragent: {
+    label: 'YourAgent',
+    endpoint: 'https://your-agent.cc/api/v1/messages',
+    authStyle: 'x-api-key',
+    envKey: 'YOURAGENT_MASTER_KEY',
+    keyPrefix: 'youragent',
+    basePath: '/api/v1/youragent',
+  },
 };
 
 export function isValidVendor(v: unknown): v is VendorId {
-  return v === 'claude' || v === 'openai' || v === 'gemini';
+  return v === 'claude' || v === 'openai' || v === 'gemini' || v === 'youragent';
 }
