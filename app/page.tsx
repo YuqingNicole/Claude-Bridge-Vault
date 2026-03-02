@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Shield, Plus } from 'lucide-react';
+import { Shield, Plus, LogOut } from 'lucide-react';
 import { VENDOR_CONFIG } from '@/lib/vendors';
 import type { VendorId } from '@/lib/types';
 import { VendorCard } from '@/components/VendorCard';
@@ -17,6 +17,11 @@ export default function VaultDashboard() {
   const [showCreate, setShowCreate] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/login';
+  };
 
   const handleCreated = useCallback(() => {
     setRefreshToken((n) => n + 1);
@@ -50,6 +55,13 @@ export default function VaultDashboard() {
             >
               <Plus size={15} />
               {t.dashboard.newKey}
+            </button>
+            <button
+              onClick={handleLogout}
+              title="Sign out"
+              className="p-2 rounded-lg border border-black/10 text-black/40 hover:text-black hover:border-black/30 transition-colors"
+            >
+              <LogOut size={15} />
             </button>
           </div>
         </header>
