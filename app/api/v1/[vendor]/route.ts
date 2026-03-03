@@ -29,9 +29,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
   }
 
   const subKey = req.headers.get('x-api-key');
-  const masterKey = process.env[`${vendor.toUpperCase()}_MASTER_KEY`];
+  const masterKeys = (process.env[`${vendor.toUpperCase()}_MASTER_KEY`] ?? '')
+    .split(',').map(k => k.trim()).filter(Boolean);
 
-  if (!masterKey) {
+  if (masterKeys.length === 0) {
     console.error(`Missing ${vendor.toUpperCase()}_MASTER_KEY environment variable`);
     return NextResponse.json({ error: 'Service misconfigured' }, { status: 500 });
   }
@@ -62,17 +63,20 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     const rawBody = await req.text();
     const model = safeModelFromBody(rawBody);
-    const upstream = buildUpstreamRequest(vendor, masterKey, rawBody);
 
-    console.log(`[proxy] ${vendor} key=${subKey.slice(-8)} model=${model ?? '?'} → ${upstream.url}`);
-
-    const response = await fetch(upstream.url, {
-      method: 'POST',
-      headers: upstream.headers,
-      body: upstream.body,
-    });
-
-    const data = await response.json();
+    let response!: Response;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let data: any;
+    for (let i = 0; i < masterKeys.length; i++) {
+      const upstream = buildUpstreamRequest(vendor, masterKeys[i], rawBody);
+      console.log(`[proxy] ${vendor} key=${subKey.slice(-8)} model=${model ?? '?'} masterKey#${i + 1} → ${upstream.url}`);
+      response = await fetch(upstream.url, { method: 'POST', headers: upstream.headers, body: upstream.body });
+      data = await response.json();
+      if (response.status !== 401 && response.status !== 429) break;
+      if (i < masterKeys.length - 1) {
+        console.warn(`[proxy] masterKey#${i + 1} returned ${response.status}, trying fallback...`);
+      }
+    }
 
     if (response.ok) {
       const now = new Date().toISOString();
