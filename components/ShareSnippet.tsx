@@ -32,8 +32,16 @@ function CopyButton({ text }: { text: string }) {
 
 export function ShareSnippet({ subKey, vendor }: ShareSnippetProps) {
   const { t } = useLang();
+  const [copiedAll, setCopiedAll] = useState(false);
   const config = VENDOR_CONFIG[vendor];
   const baseUrl = (typeof window !== 'undefined' ? window.location.origin : '') + config.basePath;
+
+  const handleCopyAll = () => {
+    const text = `Base URL: ${baseUrl}\nAPI Key: ${subKey}\nAuth Header: ${config.authStyle}`;
+    navigator.clipboard.writeText(text);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2000);
+  };
 
   const snippets: Record<string, string> = {
     claude: `curl ${baseUrl} \\\n  -H "x-api-key: ${subKey}" \\\n  -H "Content-Type: application/json" \\\n  -H "anthropic-version: 2023-06-01" \\\n  -d '{"model":"claude-opus-4-6","max_tokens":1024,"messages":[{"role":"user","content":"Hello"}]}'`,
@@ -81,6 +89,14 @@ export function ShareSnippet({ subKey, vendor }: ShareSnippetProps) {
         </div>
         <div className="text-[10px] text-black/40 mt-1">{t.shareSnippet.copyHint}</div>
       </div>
+
+      <button
+        onClick={handleCopyAll}
+        className="w-full flex items-center justify-center gap-2 py-2 border border-black/15 rounded-xl text-xs font-semibold hover:bg-black hover:text-white hover:border-black transition-colors"
+      >
+        {copiedAll ? <Check size={12} /> : <Copy size={12} />}
+        {copiedAll ? t.createKeyModal.copied : t.shareSnippet.copyAll}
+      </button>
     </div>
   );
 }

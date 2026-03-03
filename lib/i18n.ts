@@ -63,6 +63,7 @@ export const translations = {
       apiKey: 'API Key',
       authHeader: 'Auth Header',
       copyHint: 'Copy Snippet copies full curl command',
+      copyAll: 'Copy All',
     },
     createKeyModal: {
       title: 'Create Sub-Key',
@@ -283,6 +284,7 @@ export const translations = {
       apiKey: 'API 密钥',
       authHeader: '认证头',
       copyHint: '复制代码段将复制完整的 curl 命令',
+      copyAll: '一键复制全部',
     },
     createKeyModal: {
       title: '创建子密钥',
