@@ -65,11 +65,14 @@ function fmtNum(n: number): string {
   return String(n);
 }
 
-function fmtHours(h: number | null): string {
-  if (h === null) return 'Never';
-  if (h < 1) return `${Math.round(h * 60)}m ago`;
-  if (h < 24) return `${Math.round(h)}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+function fmtHours(
+  h: number | null,
+  labels: { never: string; minAgo: (n: number) => string; hourAgo: (n: number) => string; dayAgo: (n: number) => string },
+): string {
+  if (h === null) return labels.never;
+  if (h < 1) return labels.minAgo(Math.round(h * 60));
+  if (h < 24) return labels.hourAgo(Math.round(h));
+  return labels.dayAgo(Math.floor(h / 24));
 }
 
 function shortDate(iso: string): string {
@@ -79,7 +82,7 @@ function shortDate(iso: string): string {
 
 // ─── Sparkline ────────────────────────────────────────────────────────────────
 
-function Sparkline({ data }: { data: DailyPoint[] }) {
+function Sparkline({ data, noDataLabel }: { data: DailyPoint[]; noDataLabel: string }) {
   const W = 500, H = 80, PAD = 8;
   const vals = data.map(d => d.calls);
   const max = Math.max(...vals, 1);
@@ -107,7 +110,7 @@ function Sparkline({ data }: { data: DailyPoint[] }) {
         <circle cx={last[0]} cy={last[1]} r="3" fill="#111" />
       )}
       {!hasData && (
-        <text x={W / 2} y={H / 2 + 4} textAnchor="middle" fontSize="11" fill="#999">No data yet</text>
+        <text x={W / 2} y={H / 2 + 4} textAnchor="middle" fontSize="11" fill="#999">{noDataLabel}</text>
       )}
     </svg>
   );
@@ -147,6 +150,7 @@ function Skeleton({ className }: { className?: string }) {
 
 export default function AnalyticsPage() {
   const { t } = useLang();
+  const a = t.analytics;
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<7 | 30>(7);
@@ -180,8 +184,8 @@ export default function AnalyticsPage() {
               <Activity className="w-5 h-5 text-black" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Analytics</h1>
-              <p className="text-sm text-black/50">Calls · Tokens · Cost · Key Health</p>
+              <h1 className="text-2xl font-semibold tracking-tight">{a.title}</h1>
+              <p className="text-sm text-black/50">{a.subtitle}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -195,7 +199,7 @@ export default function AnalyticsPage() {
               <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
             </button>
             <a href="/" className="text-xs text-black/40 hover:text-black transition-colors flex items-center gap-1">
-              <ArrowLeft size={12} /> Dashboard
+              <ArrowLeft size={12} /> {a.back.replace('← ', '')}
             </a>
           </div>
         </header>
@@ -203,10 +207,10 @@ export default function AnalyticsPage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[
-            { label: 'Total Calls', icon: <Zap size={12} />, value: loading ? null : fmtNum(data?.summary.totalCalls ?? 0) },
-            { label: 'Total Tokens', icon: <BarChart2 size={12} />, value: loading ? null : fmtNum(data?.summary.totalTokens ?? 0) },
-            { label: 'Est. Cost', icon: <TrendingUp size={12} />, value: loading ? null : fmtUsd(data?.summary.totalCostUsd ?? 0) },
-            { label: 'Active Keys', icon: <Key size={12} />, value: loading ? null : String(data?.summary.activeKeys ?? 0) },
+            { label: a.totalCalls, icon: <Zap size={12} />, value: loading ? null : fmtNum(data?.summary.totalCalls ?? 0) },
+            { label: a.totalTokens, icon: <BarChart2 size={12} />, value: loading ? null : fmtNum(data?.summary.totalTokens ?? 0) },
+            { label: a.estCost, icon: <TrendingUp size={12} />, value: loading ? null : fmtUsd(data?.summary.totalCostUsd ?? 0) },
+            { label: a.activeKeys, icon: <Key size={12} />, value: loading ? null : String(data?.summary.activeKeys ?? 0) },
           ].map(({ label, icon, value }) => (
             <div key={label} className="bg-white border border-black/10 rounded-2xl p-4 shadow-sm shadow-black/5">
               <div className="flex items-center gap-1.5 text-black/40 mb-2">
@@ -227,13 +231,13 @@ export default function AnalyticsPage() {
             {(data?.summary.keysNearQuota ?? 0) > 0 && (
               <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
                 <AlertTriangle size={11} />
-                {data?.summary.keysNearQuota} key{data?.summary.keysNearQuota !== 1 ? 's' : ''} near quota limit
+                {a.keysNearQuota(data?.summary.keysNearQuota ?? 0)}
               </div>
             )}
             {(data?.summary.expiringKeys ?? 0) > 0 && (
               <div className="flex items-center gap-1.5 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
                 <Clock size={11} />
-                {data?.summary.expiringKeys} key{data?.summary.expiringKeys !== 1 ? 's' : ''} expiring within 7 days
+                {a.keysExpiring(data?.summary.expiringKeys ?? 0)}
               </div>
             )}
           </div>
@@ -245,7 +249,7 @@ export default function AnalyticsPage() {
           {/* Sparkline */}
           <div className="md:col-span-3 bg-white border border-black/10 rounded-2xl p-5 shadow-sm shadow-black/5">
             <div className="flex items-center justify-between mb-4">
-              <div className="text-xs font-semibold uppercase tracking-[0.15em] text-black/50">Call Activity</div>
+              <div className="text-xs font-semibold uppercase tracking-[0.15em] text-black/50">{a.callActivity}</div>
               <div className="flex gap-1">
                 {([7, 30] as const).map(r => (
                   <button
@@ -261,7 +265,7 @@ export default function AnalyticsPage() {
             <div className="h-20">
               {loading
                 ? <Skeleton className="h-full w-full" />
-                : <Sparkline data={slicedDaily} />
+                : <Sparkline data={slicedDaily} noDataLabel={a.noData} />
               }
             </div>
             {!loading && slicedDaily.length > 0 && (
@@ -274,28 +278,28 @@ export default function AnalyticsPage() {
 
           {/* Vendor Breakdown */}
           <div className="md:col-span-2 bg-white border border-black/10 rounded-2xl p-5 shadow-sm shadow-black/5">
-            <div className="text-xs font-semibold uppercase tracking-[0.15em] text-black/50 mb-4">Vendor Breakdown</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.15em] text-black/50 mb-4">{a.vendorBreakdown}</div>
             {loading
               ? <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-8" />)}</div>
               : (
                 <div className="space-y-3">
                   {Object.entries(data?.byVendor ?? {}).length === 0 && (
-                    <p className="text-xs text-black/30 text-center py-4">No data yet</p>
+                    <p className="text-xs text-black/30 text-center py-4">{a.noData}</p>
                   )}
-                  {Object.entries(data?.byVendor ?? {}).sort((a, b) => b[1].calls - a[1].calls).map(([vendor, stat]) => {
+                  {Object.entries(data?.byVendor ?? {}).sort((a2, b) => b[1].calls - a2[1].calls).map(([vendor, stat]) => {
                     const pct = totalVendorCalls > 0 ? stat.calls / totalVendorCalls : 0;
                     const cfg = VENDOR_CONFIG[vendor as VendorId];
                     return (
                       <div key={vendor}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-medium">{cfg?.label ?? vendor}</span>
-                          <span className="text-[10px] font-mono text-black/40">{fmtNum(stat.calls)} calls</span>
+                          <span className="text-[10px] font-mono text-black/40">{fmtNum(stat.calls)} {a.calls}</span>
                         </div>
                         <div className="h-1.5 w-full bg-black/6 rounded-full overflow-hidden">
                           <div className="h-full bg-black/25 rounded-full" style={{ width: `${Math.round(pct * 100)}%` }} />
                         </div>
                         <div className="flex items-center justify-between mt-0.5">
-                          <span className="text-[9px] text-black/25">{fmtNum(stat.inputTokens + stat.outputTokens)} tokens</span>
+                          <span className="text-[9px] text-black/25">{fmtNum(stat.inputTokens + stat.outputTokens)} {a.tok}</span>
                           <span className="text-[9px] text-black/25">{fmtUsd(stat.costUsd)}</span>
                         </div>
                       </div>
@@ -309,7 +313,7 @@ export default function AnalyticsPage() {
 
         {/* Key Health Grid */}
         <div className="mb-2">
-          <div className="text-xs font-semibold uppercase tracking-[0.15em] text-black/40 mb-3">Key Health</div>
+          <div className="text-xs font-semibold uppercase tracking-[0.15em] text-black/40 mb-3">{a.keyHealth}</div>
           {loading
             ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -319,7 +323,7 @@ export default function AnalyticsPage() {
             : data?.keyHealth.length === 0
               ? (
                 <div className="bg-white border border-black/10 rounded-2xl p-8 text-center text-sm text-black/30 shadow-sm">
-                  No keys found
+                  {a.noKeys}
                 </div>
               )
               : (
@@ -346,20 +350,20 @@ export default function AnalyticsPage() {
                           {k.quotaPct !== null ? (
                             <>
                               <div className="flex justify-between text-[10px] text-black/40 mb-1">
-                                <span>Quota</span>
+                                <span>{a.quota}</span>
                                 <span className="font-mono">{k.usage} / {k.totalQuota}</span>
                               </div>
                               <QuotaBar pct={k.quotaPct} danger={nearQ} />
                             </>
                           ) : (
-                            <div className="text-[10px] text-black/30">Quota: <span className="font-mono">unlimited</span></div>
+                            <div className="text-[10px] text-black/30">{a.quota}: <span className="font-mono">{a.unlimited}</span></div>
                           )}
                         </div>
 
                         {/* Stats row */}
                         <div className="flex items-center gap-3 text-[10px] text-black/40 font-mono mt-2">
-                          <span>{fmtNum(k.usage)} calls</span>
-                          {tokens > 0 && <span>{fmtNum(tokens)} tok</span>}
+                          <span>{fmtNum(k.usage)} {a.calls}</span>
+                          {tokens > 0 && <span>{fmtNum(tokens)} {a.tok}</span>}
                           {k.costUsd != null && <span>{fmtUsd(k.costUsd)}</span>}
                         </div>
 
@@ -367,12 +371,12 @@ export default function AnalyticsPage() {
                         <div className="flex items-center justify-between mt-3 pt-2 border-t border-black/5">
                           <div className="flex items-center gap-1.5 text-[10px] text-black/35">
                             <Clock size={9} />
-                            {fmtHours(k.lastUsedHours)}
+                            {fmtHours(k.lastUsedHours, a)}
                           </div>
                           <div className="flex items-center gap-1">
                             <StatusDot k={k} />
                             <span className="text-[10px] text-black/35">
-                              {expired ? 'Expired' : k.daysUntilExpiry !== null ? `${k.daysUntilExpiry}d left` : 'No expiry'}
+                              {expired ? a.expired : k.daysUntilExpiry !== null ? a.daysLeft(k.daysUntilExpiry) : a.noExpiry}
                             </span>
                           </div>
                         </div>
@@ -385,7 +389,7 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="mt-10 pt-4 border-t border-black/5 text-xs text-black/25 text-center">
-          Bridge Vault · Analytics · {new Date().toLocaleDateString()}
+          {a.footer(new Date().toLocaleDateString())}
         </div>
       </div>
     </div>

@@ -3,11 +3,14 @@
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield, Eye, EyeOff } from 'lucide-react';
+import { useLang, LangToggle } from '@/components/LangContext';
 
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const from = params.get('from') || '/';
+  const { t } = useLang();
+  const l = t.login;
 
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -29,11 +32,11 @@ function LoginForm() {
         router.replace(from);
       } else {
         const data = await res.json();
-        setError(data.error || 'Invalid password');
+        setError(data.error || l.errorInvalid);
         setPassword('');
       }
     } catch {
-      setError('Network error, please try again.');
+      setError(l.errorNetwork);
     } finally {
       setLoading(false);
     }
@@ -48,14 +51,19 @@ function LoginForm() {
             <Shield className="w-7 h-7 text-black" />
           </div>
           <h1 className="text-xl font-semibold tracking-tight">CLAUDE BRIDGE VAULT</h1>
-          <p className="text-sm text-black/40 mt-1">Admin Access</p>
+          <p className="text-sm text-black/40 mt-1">{l.subtitle}</p>
+        </div>
+
+        {/* Lang toggle */}
+        <div className="flex justify-end mb-4">
+          <LangToggle />
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-black/10 shadow-sm p-8 space-y-4">
           <div>
             <label className="text-[10px] font-semibold text-black/40 uppercase tracking-widest block mb-1.5">
-              Password
+              {l.passwordLabel}
             </label>
             <div className="relative">
               <input
@@ -64,7 +72,7 @@ function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 autoFocus
                 autoComplete="current-password"
-                placeholder="Enter admin password"
+                placeholder={l.passwordPlaceholder}
                 className="w-full border border-black/10 rounded-lg px-3 py-2.5 pr-10 text-sm focus:outline-none focus:border-black/30"
               />
               <button
@@ -87,12 +95,12 @@ function LoginForm() {
             disabled={loading || !password.trim()}
             className="w-full py-2.5 bg-black text-white text-sm font-semibold rounded-lg hover:bg-black/80 disabled:opacity-40 transition-colors"
           >
-            {loading ? 'Verifying...' : 'Sign In'}
+            {loading ? l.verifying : l.signIn}
           </button>
         </form>
 
         <p className="text-center text-[11px] text-black/25 mt-6">
-          Bridge Vault · Protected Admin Area
+          {l.footer}
         </p>
       </div>
     </div>
