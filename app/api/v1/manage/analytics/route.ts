@@ -49,7 +49,8 @@ export async function GET() {
     totalOutputTokens += k.outputTokens || 0;
     totalCostUsd += k.costUsd || 0;
 
-    if (k.totalQuota != null && k.totalQuota > 0 && (k.usage || 0) / k.totalQuota >= 0.8) keysNearQuota++;
+    const usedTokens = (k.inputTokens || 0) + (k.outputTokens || 0);
+    if (k.totalQuota != null && k.totalQuota > 0 && usedTokens / k.totalQuota >= 0.8) keysNearQuota++;
     if (k.expiresAt) {
       const daysLeft = (new Date(k.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
       if (daysLeft <= 7 && daysLeft >= 0) expiringKeys++;
@@ -63,7 +64,7 @@ export async function GET() {
     group: k.group,
     usage: k.usage || 0,
     totalQuota: k.totalQuota,
-    quotaPct: (k.totalQuota != null && k.totalQuota > 0) ? Math.min(1, (k.usage || 0) / k.totalQuota) : null,
+    quotaPct: (k.totalQuota != null && k.totalQuota > 0) ? Math.min(1, ((k.inputTokens || 0) + (k.outputTokens || 0)) / k.totalQuota) : null,
     daysUntilExpiry: k.expiresAt
       ? Math.ceil((new Date(k.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
       : null,

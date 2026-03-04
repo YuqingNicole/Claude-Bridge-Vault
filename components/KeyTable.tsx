@@ -89,7 +89,7 @@ export function KeyTable({ keys, onDeleted }: KeyTableProps) {
           <tbody>
             {keys.map((row) => (
               (() => {
-                const remaining = row.totalQuota != null ? Math.max(0, row.totalQuota - row.usage) : null;
+                const remaining = row.totalQuota != null ? Math.max(0, row.totalQuota - ((row.inputTokens || 0) + (row.outputTokens || 0))) : null;
                 const tokens = (row.inputTokens || 0) + (row.outputTokens || 0);
                 const cost = row.costUsd || 0;
                 return (

@@ -29,6 +29,39 @@ function isStreaming(rawBody: string): boolean {
   }
 }
 
+// Parse Anthropic SSE stream to extract token usage
+async function extractTokensFromSSE(stream: ReadableStream): Promise<{ inputTokens: number; outputTokens: number }> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let inputTokens = 0;
+  let outputTokens = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const text = decoder.decode(value, { stream: true });
+      for (const line of text.split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === '[DONE]') continue;
+        try {
+          const evt = JSON.parse(jsonStr) as Record<string, unknown>;
+          if (evt.type === 'message_start') {
+            const usage = (evt.message as Record<string, unknown>)?.usage as Record<string, number> | undefined;
+            if (usage) { inputTokens = usage.input_tokens ?? 0; outputTokens = usage.output_tokens ?? 0; }
+          } else if (evt.type === 'message_delta') {
+            const usage = evt.usage as Record<string, number> | undefined;
+            if (usage?.output_tokens) outputTokens = usage.output_tokens;
+          }
+        } catch { /* ignore malformed lines */ }
+      }
+    }
+  } catch { /* ignore stream errors */ } finally {
+    reader.releaseLock();
+  }
+  return { inputTokens, outputTokens };
+}
+
 export async function POST(req: NextRequest, context: RouteContext) {
   const { vendor } = await context.params;
 
@@ -57,14 +90,23 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Invalid or mismatched key' }, { status: 403 });
     }
 
-    const kd = keyData as { expiresAt?: string | null; totalQuota?: number | null; usage?: number };
+    const kd = keyData as {
+      expiresAt?: string | null;
+      totalQuota?: number | null;
+      usage?: number;
+      inputTokens?: number;
+      outputTokens?: number;
+      costUsd?: number;
+    };
 
     if (kd.expiresAt && new Date(kd.expiresAt) < new Date()) {
       return NextResponse.json({ error: 'Key expired' }, { status: 403 });
     }
 
-    if (kd.totalQuota !== null && kd.totalQuota !== undefined) {
-      if ((kd.usage ?? 0) >= kd.totalQuota) {
+    // Quota check: token-based (totalQuota = max token budget)
+    if (kd.totalQuota != null) {
+      const usedTokens = (kd.inputTokens ?? 0) + (kd.outputTokens ?? 0);
+      if (usedTokens >= kd.totalQuota) {
         return NextResponse.json({ error: 'Quota exceeded' }, { status: 429 });
       }
     }
@@ -82,57 +124,67 @@ export async function POST(req: NextRequest, context: RouteContext) {
       body: upstream.body,
     });
 
-    // Increment usage + log (fire-and-forget, don't block streaming)
-    if (response.ok) {
-      const now = new Date().toISOString();
-      const updated = {
-        ...keyData,
-        usage: ((keyData as { usage?: number }).usage || 0) + 1,
-        lastUsed: now,
-      };
-      void redis.hset('vault:subkeys', { [subKey]: JSON.stringify(updated) });
-
-      const today = now.slice(0, 10);
-      void redis.incr(`vault:daily:calls:${today}`)
-        .then(() => redis.expire(`vault:daily:calls:${today}`, 35 * 24 * 3600))
-        .catch((err) => console.warn('[analytics] daily counter failed', err));
-    } else {
+    if (!response.ok) {
       console.warn(`[proxy] ${vendor} key=${subKey.slice(-8)} ✗ HTTP ${response.status}`);
+      const errData = await response.json().catch(() => ({ error: 'Upstream error' }));
+      return NextResponse.json(errData, { status: response.status });
     }
 
-    // Stream: pipe SSE directly through
+    // Increment call count + lastUsed (fire-and-forget)
+    const now = new Date().toISOString();
+    void redis.hset('vault:subkeys', {
+      [subKey]: JSON.stringify({ ...keyData, usage: (kd.usage ?? 0) + 1, lastUsed: now }),
+    });
+
+    const today = now.slice(0, 10);
+    void redis.incr(`vault:daily:calls:${today}`)
+      .then(() => redis.expire(`vault:daily:calls:${today}`, 35 * 24 * 3600))
+      .catch((err) => console.warn('[analytics] daily counter failed', err));
+
+    // Streaming: pipe SSE through, parse tokens in background
     if (streaming && response.body) {
+      const [clientStream, parseStream] = response.body.tee();
+
+      void extractTokensFromSSE(parseStream).then(async ({ inputTokens, outputTokens }) => {
+        if (inputTokens === 0 && outputTokens === 0) return;
+        const costInc = estimateVendorCostUsd(vendor, model, { inputTokens, outputTokens });
+        console.log(`[proxy] ${vendor} key=${subKey.slice(-8)} ✓ stream in=${inputTokens} out=${outputTokens} cost=$${costInc.toFixed(6)}`);
+        const latest = parseKeyRecord(await redis.hget('vault:subkeys', subKey)) ?? keyData;
+        const lk = latest as { inputTokens?: number; outputTokens?: number; costUsd?: number };
+        void redis.hset('vault:subkeys', {
+          [subKey]: JSON.stringify({
+            ...latest,
+            inputTokens: (lk.inputTokens ?? 0) + inputTokens,
+            outputTokens: (lk.outputTokens ?? 0) + outputTokens,
+            costUsd: (lk.costUsd ?? 0) + costInc,
+          }),
+        });
+      });
+
       const headers = new Headers();
       headers.set('Content-Type', response.headers.get('Content-Type') ?? 'text/event-stream');
       headers.set('Cache-Control', 'no-cache');
-      headers.set('Transfer-Encoding', 'chunked');
-      return new Response(response.body, {
-        status: response.status,
-        headers,
-      });
+      return new Response(clientStream, { status: response.status, headers });
     }
 
-    // Non-stream: parse JSON, update token/cost stats
+    // Non-streaming: parse JSON + update tokens/cost
     const data = await response.json() as Record<string, unknown>;
+    const tokenUsage = extractTokenUsage(vendor, data);
+    const inputInc = tokenUsage?.inputTokens ?? 0;
+    const outputInc = tokenUsage?.outputTokens ?? 0;
+    const costInc = tokenUsage ? estimateVendorCostUsd(vendor, model, tokenUsage) : 0;
+    console.log(`[proxy] ${vendor} key=${subKey.slice(-8)} ✓ in=${inputInc} out=${outputInc} cost=$${costInc.toFixed(6)}`);
 
-    if (response.ok) {
-      const tokenUsage = extractTokenUsage(vendor, data);
-      const inputInc = tokenUsage?.inputTokens ?? 0;
-      const outputInc = tokenUsage?.outputTokens ?? 0;
-      const costInc = tokenUsage ? estimateVendorCostUsd(vendor, model, tokenUsage) : 0;
-
-      console.log(`[proxy] ${vendor} key=${subKey.slice(-8)} ✓ in=${inputInc} out=${outputInc} cost=$${costInc.toFixed(6)}`);
-
-      const keyDataStr2 = await redis.hget('vault:subkeys', subKey);
-      const latest = parseKeyRecord(keyDataStr2) ?? keyData;
-      const updated = {
+    const latest = parseKeyRecord(await redis.hget('vault:subkeys', subKey)) ?? keyData;
+    const lk = latest as { inputTokens?: number; outputTokens?: number; costUsd?: number };
+    void redis.hset('vault:subkeys', {
+      [subKey]: JSON.stringify({
         ...latest,
-        inputTokens: ((latest as { inputTokens?: number }).inputTokens || 0) + inputInc,
-        outputTokens: ((latest as { outputTokens?: number }).outputTokens || 0) + outputInc,
-        costUsd: ((latest as { costUsd?: number }).costUsd || 0) + costInc,
-      };
-      void redis.hset('vault:subkeys', { [subKey]: JSON.stringify(updated) });
-    }
+        inputTokens: (lk.inputTokens ?? 0) + inputInc,
+        outputTokens: (lk.outputTokens ?? 0) + outputInc,
+        costUsd: (lk.costUsd ?? 0) + costInc,
+      }),
+    });
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
