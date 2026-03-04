@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { Shield, Plus, LogOut } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Shield, Plus, LogOut, Zap, BarChart2, TrendingUp, Key, ExternalLink } from 'lucide-react';
 import { VENDOR_CONFIG } from '@/lib/vendors';
 import type { VendorId } from '@/lib/types';
 import { VendorCard } from '@/components/VendorCard';
@@ -10,11 +10,39 @@ import { useLang, LangToggle } from '@/components/LangContext';
 
 const VENDORS: VendorId[] = ['youragent', 'claude', 'openai', 'gemini'];
 
+function fmtNum(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+function fmtUsd(n: number): string {
+  if (!Number.isFinite(n) || n === 0) return '$0.00';
+  if (n < 0.001) return '<$0.001';
+  if (n < 0.01) return `$${n.toFixed(4)}`;
+  return `$${n.toFixed(2)}`;
+}
+
+interface AnalyticsSummary {
+  totalCalls: number;
+  totalTokens: number;
+  totalCostUsd: number;
+  activeKeys: number;
+}
+
 export default function VaultDashboard() {
   const { t } = useLang();
   const [activeVendor, setActiveVendor] = useState<VendorId>('youragent');
   const [showCreate, setShowCreate] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
+
+  useEffect(() => {
+    fetch('/api/v1/manage/analytics')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => data && setSummary(data.summary))
+      .catch(() => {});
+  }, [refreshToken]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -63,6 +91,33 @@ export default function VaultDashboard() {
             </button>
           </div>
         </header>
+
+        {/* Mini Dashboard */}
+        <div className="bg-white border border-black/10 rounded-2xl shadow-sm shadow-black/5 mb-6 px-5 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-black/40">{t.dashboard.analytics}</span>
+            <a href="/analytics" className="flex items-center gap-1 text-[10px] text-black/35 hover:text-black transition-colors">
+              <ExternalLink size={10} />
+              <span>{t.analytics.title}</span>
+            </a>
+          </div>
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { icon: <Zap size={11} />, label: t.analytics.totalCalls, value: summary ? fmtNum(summary.totalCalls) : '—' },
+              { icon: <BarChart2 size={11} />, label: t.analytics.totalTokens, value: summary ? fmtNum(summary.totalTokens) : '—' },
+              { icon: <TrendingUp size={11} />, label: t.analytics.estCost, value: summary ? fmtUsd(summary.totalCostUsd) : '—' },
+              { icon: <Key size={11} />, label: t.analytics.activeKeys, value: summary ? String(summary.activeKeys) : '—' },
+            ].map(({ icon, label, value }) => (
+              <div key={label} className="flex flex-col gap-1">
+                <div className="flex items-center gap-1 text-black/35">
+                  {icon}
+                  <span className="text-[9px] uppercase tracking-[0.15em]">{label}</span>
+                </div>
+                <div className="text-lg font-semibold font-mono text-black">{value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Vendor Rail */}
         <div className="flex gap-2 mb-8">
