@@ -21,6 +21,14 @@ const parseKeyRecord = (value: unknown) => {
   return value;
 };
 
+function isStreaming(rawBody: string): boolean {
+  try {
+    return JSON.parse(rawBody)?.stream === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: NextRequest, context: RouteContext) {
   const { vendor } = await context.params;
 
@@ -63,48 +71,67 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     const rawBody = await req.text();
     const model = safeModelFromBody(rawBody);
+    const streaming = isStreaming(rawBody);
 
-    let response!: Response;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let data: any;
-    for (let i = 0; i < masterKeys.length; i++) {
-      const upstream = buildUpstreamRequest(vendor, masterKeys[i], rawBody);
-      console.log(`[proxy] ${vendor} key=${subKey.slice(-8)} model=${model ?? '?'} masterKey#${i + 1} → ${upstream.url}`);
-      response = await fetch(upstream.url, { method: 'POST', headers: upstream.headers, body: upstream.body });
-      data = await response.json();
-      if (response.status !== 401 && response.status !== 429) break;
-      if (i < masterKeys.length - 1) {
-        console.warn(`[proxy] masterKey#${i + 1} returned ${response.status}, trying fallback...`);
-      }
-    }
+    const upstream = buildUpstreamRequest(vendor, masterKeys[0], rawBody);
+    console.log(`[proxy] ${vendor} key=${subKey.slice(-8)} model=${model ?? '?'} stream=${streaming} → ${upstream.url}`);
 
+    const response = await fetch(upstream.url, {
+      method: 'POST',
+      headers: upstream.headers,
+      body: upstream.body,
+    });
+
+    // Increment usage + log (fire-and-forget, don't block streaming)
     if (response.ok) {
       const now = new Date().toISOString();
+      const updated = {
+        ...keyData,
+        usage: ((keyData as { usage?: number }).usage || 0) + 1,
+        lastUsed: now,
+      };
+      void redis.hset('vault:subkeys', { [subKey]: JSON.stringify(updated) });
 
-      const tokenUsage = extractTokenUsage(vendor, data as Record<string, unknown>);
+      const today = now.slice(0, 10);
+      void redis.incr(`vault:daily:calls:${today}`)
+        .then(() => redis.expire(`vault:daily:calls:${today}`, 35 * 24 * 3600))
+        .catch((err) => console.warn('[analytics] daily counter failed', err));
+    } else {
+      console.warn(`[proxy] ${vendor} key=${subKey.slice(-8)} ✗ HTTP ${response.status}`);
+    }
+
+    // Stream: pipe SSE directly through
+    if (streaming && response.body) {
+      const headers = new Headers();
+      headers.set('Content-Type', response.headers.get('Content-Type') ?? 'text/event-stream');
+      headers.set('Cache-Control', 'no-cache');
+      headers.set('Transfer-Encoding', 'chunked');
+      return new Response(response.body, {
+        status: response.status,
+        headers,
+      });
+    }
+
+    // Non-stream: parse JSON, update token/cost stats
+    const data = await response.json() as Record<string, unknown>;
+
+    if (response.ok) {
+      const tokenUsage = extractTokenUsage(vendor, data);
       const inputInc = tokenUsage?.inputTokens ?? 0;
       const outputInc = tokenUsage?.outputTokens ?? 0;
       const costInc = tokenUsage ? estimateVendorCostUsd(vendor, model, tokenUsage) : 0;
 
       console.log(`[proxy] ${vendor} key=${subKey.slice(-8)} ✓ in=${inputInc} out=${outputInc} cost=$${costInc.toFixed(6)}`);
 
+      const keyDataStr2 = await redis.hget('vault:subkeys', subKey);
+      const latest = parseKeyRecord(keyDataStr2) ?? keyData;
       const updated = {
-        ...keyData,
-        usage: ((keyData as { usage?: number }).usage || 0) + 1,
-        lastUsed: now,
-        inputTokens: ((keyData as { inputTokens?: number }).inputTokens || 0) + inputInc,
-        outputTokens: ((keyData as { outputTokens?: number }).outputTokens || 0) + outputInc,
-        costUsd: ((keyData as { costUsd?: number }).costUsd || 0) + costInc,
+        ...latest,
+        inputTokens: ((latest as { inputTokens?: number }).inputTokens || 0) + inputInc,
+        outputTokens: ((latest as { outputTokens?: number }).outputTokens || 0) + outputInc,
+        costUsd: ((latest as { costUsd?: number }).costUsd || 0) + costInc,
       };
-      await redis.hset('vault:subkeys', { [subKey]: JSON.stringify(updated) });
-
-      // fire-and-forget daily call counter for analytics
-      const today = now.slice(0, 10);
-      void redis.incr(`vault:daily:calls:${today}`)
-        .then(() => redis.expire(`vault:daily:calls:${today}`, 35 * 24 * 3600))
-        .catch((err) => console.warn('[analytics] daily counter failed', err));
-    } else {
-      console.warn(`[proxy] ${vendor} key=${subKey.slice(-8)} ✗ HTTP ${response.status} model=${model ?? '?'} error=${JSON.stringify((data as Record<string, unknown>).error ?? data).slice(0, 200)}`);
+      void redis.hset('vault:subkeys', { [subKey]: JSON.stringify(updated) });
     }
 
     return NextResponse.json(data, { status: response.status });
