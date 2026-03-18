@@ -1,5 +1,5 @@
 {
-  "name": "claude-bridge-vault",
+  "name": "token-bank",
   "version": "0.1.0",
   "private": true,
   "scripts": {
