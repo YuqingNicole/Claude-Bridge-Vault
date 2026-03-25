@@ -263,7 +263,7 @@ export function CreateKeyModal({ onClose, onCreated, defaultScope = 'internal' }
                         : 'border-black/10 hover:border-black/30'
                     }`}
                   >
-                    {VENDOR_CONFIG[v].label}
+                    {VENDOR_CONFIG[v]?.label ?? v}
                   </button>
                 ))}
               </div>

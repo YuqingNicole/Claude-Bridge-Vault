@@ -81,7 +81,7 @@ function KeySettingsRow({
             {(row.scope ?? 'internal') === 'external' ? t.dashboard.scopeExternal : t.dashboard.scopeInternal}
           </span>
           <span className="text-[10px] border border-black/15 rounded-full px-2 py-px uppercase tracking-wider text-black/50 flex-shrink-0">
-            {VENDOR_CONFIG[row.vendor].label}
+            {VENDOR_CONFIG[row.vendor as VendorId]?.label ?? row.vendor}
           </span>
           <span className="text-[10px] text-black/30 border border-[var(--border)] rounded-full px-2 py-px flex-shrink-0">
             {groups.find(g => (g.hashKey.split(':')[1] || g.hashKey) === row.group)?.label ?? row.group}
@@ -325,7 +325,7 @@ export default function SettingsPage() {
                   : 'border-[var(--border)] text-black/50 hover:text-black hover:border-black/20 bg-[var(--surface)]'
               }`}
             >
-              {v === 'all' ? s.allVendors : VENDOR_CONFIG[v as VendorId].label}
+              {v === 'all' ? s.allVendors : (VENDOR_CONFIG[v as VendorId]?.label ?? v)}
             </button>
           ))}
         </div>

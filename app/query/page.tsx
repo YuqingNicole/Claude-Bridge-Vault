@@ -173,7 +173,7 @@ export default function UsageQuery() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className="text-[10px] uppercase tracking-[0.3em] border border-black/20 rounded-full px-3 py-0.5">
-                      {VENDOR_CONFIG[result.vendor].label}
+                      {VENDOR_CONFIG[result.vendor as VendorId]?.label ?? result.vendor}
                     </span>
                     <span className="text-[10px] uppercase tracking-[0.3em] border border-black/20 rounded-full px-3 py-0.5">
                       {result.group}

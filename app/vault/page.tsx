@@ -167,9 +167,9 @@ export default function VaultDashboard() {
                       : 'border-[var(--border)] text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--border-hover)] bg-[var(--surface)]'
                   }`}
                 >
-                  <span>{VENDOR_CONFIG[v].label}</span>
+                  <span>{VENDOR_CONFIG[v]?.label ?? v}</span>
                   <span className={`text-[10px] font-mono ${activeVendor === v ? 'text-white/40' : 'text-[var(--text-4)]'}`}>
-                    {VENDOR_CONFIG[v].keyPrefix}
+                    {VENDOR_CONFIG[v]?.keyPrefix}
                   </span>
                 </button>
               ))}
