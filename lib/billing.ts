@@ -41,8 +41,6 @@ export function extractTokenUsage(vendor: VendorId, data: UsageLike): TokenUsage
 // All costs are in USD. These are official API list prices, NOT actual billed amounts.
 // - Claude: Anthropic official pricing
 // - YourAgent: Claude official × 4% (YOURAGENT_PRICE_MULTIPLIER) — update if pricing changes
-// - Yunwu: OpenAI official pricing — TODO: update to Yunwu's actual reseller pricing when available
-
 const ANTHROPIC_PRICES: Record<string, { input: number; output: number }> = {
   // Opus 4.6 / 4
   'claude-opus-4-6':           { input: 15.0,  output: 75.0  },
@@ -64,49 +62,10 @@ const ANTHROPIC_PRICES: Record<string, { input: number; output: number }> = {
   __default__:                 { input: 3.0,   output: 15.0  },
 };
 
-// Yunwu proxies OpenAI-compatible models (includes all vendors routed through Yunwu)
-const OPENAI_COMPAT_PRICES: Record<string, { input: number; output: number }> = {
-  // OpenAI
-  'gpt-4.1':             { input: 2.00,  output: 8.0   },
-  'gpt-4.1-mini':        { input: 0.40,  output: 1.60  },
-  'gpt-4.1-nano':        { input: 0.10,  output: 0.40  },
-  'gpt-4o':              { input: 2.50,  output: 10.0  },
-  'gpt-4o-2024-11-20':   { input: 2.50,  output: 10.0  },
-  'gpt-4o-mini':         { input: 0.15,  output: 0.60  },
-  'gpt-4o-mini-2024-07-18': { input: 0.15, output: 0.60 },
-  'gpt-4-turbo':         { input: 10.0,  output: 30.0  },
-  'gpt-4':               { input: 30.0,  output: 60.0  },
-  'gpt-3.5-turbo':       { input: 0.50,  output: 1.50  },
-  'o1':                  { input: 15.0,  output: 60.0  },
-  'o1-mini':             { input: 3.0,   output: 12.0  },
-  'o1-pro':              { input: 150.0, output: 600.0 },
-  'o3':                  { input: 10.0,  output: 40.0  },
-  'o3-mini':             { input: 1.10,  output: 4.40  },
-  'o4-mini':             { input: 1.10,  output: 4.40  },
-  // Google Gemini
-  'gemini-2.5-pro':      { input: 1.25,  output: 10.0  },
-  'gemini-2.5-flash':    { input: 0.15,  output: 0.60  },
-  'gemini-2.0-flash':    { input: 0.10,  output: 0.40  },
-  // xAI Grok
-  'grok-3':              { input: 3.0,   output: 15.0  },
-  'grok-3-mini':         { input: 0.30,  output: 0.50  },
-  // DeepSeek
-  'deepseek-chat':       { input: 0.27,  output: 1.10  },
-  'deepseek-reasoner':   { input: 0.55,  output: 2.19  },
-  // Claude via Yunwu (same Anthropic pricing)
-  'claude-opus-4-6':           { input: 15.0,  output: 75.0  },
-  'claude-sonnet-4-6':         { input: 3.0,   output: 15.0  },
-  'claude-haiku-4-5-20251001': { input: 0.80,  output: 4.0   },
-  'claude-sonnet-4-20250514':  { input: 3.0,   output: 15.0  },
-  'claude-opus-4-20250514':    { input: 15.0,  output: 75.0  },
-  __default__:           { input: 2.50,  output: 10.0  },
-};
-
 // Vendor → price table mapping
 const VENDOR_PRICE_TABLES: Record<string, Record<string, { input: number; output: number }>> = {
   claude:    ANTHROPIC_PRICES,
   youragent: ANTHROPIC_PRICES,
-  yunwu:     OPENAI_COMPAT_PRICES,
 };
 
 // YourAgent pricing rule: same token usage costs 4% of official Claude.

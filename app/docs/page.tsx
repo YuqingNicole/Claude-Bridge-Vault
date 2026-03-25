@@ -208,10 +208,9 @@ export default function DocsPage() {
                 rows={[
                   ['Claude', '/api/v1/claude', 'x-api-key', 'Anthropic Messages'],
                   ['YourAgent', '/api/v1/youragent', 'x-api-key', 'Anthropic Messages'],
-                  ['Yunwu', '/api/v1/yunwu', 'x-api-key', 'OpenAI Chat Completions'],
                 ]}
               />
-              <P>All vendors authenticate via <code className="px-1.5 py-0.5 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius-sm)] font-mono text-[12px]">x-api-key</code> header with your Sub-Key. Token Bank internally converts to the upstream vendor&apos;s auth format (Bearer for Yunwu/OpenAI).</P>
+              <P>All vendors authenticate via <code className="px-1.5 py-0.5 bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius-sm)] font-mono text-[12px]">x-api-key</code> header with your Sub-Key.</P>
             </Section>
 
             {/* ── 3. Usage Examples ── */}
@@ -227,15 +226,6 @@ export default function DocsPage() {
     "messages": [{"role":"user","content":"Hello"}]
   }'`}</Block>
 
-              <P>{d.exampleYunwu}</P>
-              <Block>{`curl https://www.sitesfy.run/api/v1/yunwu \\
-  -H "x-api-key: sk-vault-yunwu-xxxxxxxx" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "gpt-4o",
-    "messages": [{"role":"user","content":"Hello"}]
-  }'`}</Block>
-
               <P>{d.exampleStream}</P>
               <Block>{`curl https://www.sitesfy.run/api/v1/claude \\
   -H "x-api-key: sk-vault-claude-xxxxxxxx" \\
@@ -248,18 +238,6 @@ export default function DocsPage() {
     "messages": [{"role":"user","content":"Hello"}]
   }'`}</Block>
 
-              <P>{d.exampleYunwuStream}</P>
-              <Block>{`curl https://www.sitesfy.run/api/v1/yunwu \\
-  -H "x-api-key: sk-vault-yunwu-xxxxxxxx" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "gemini-2.5-flash",
-    "stream": true,
-    "messages": [{"role":"user","content":"Hello"}]
-  }'
-
-# Returns SSE stream. Token usage is parsed in the background
-# and automatically added to the key's usage statistics.`}</Block>
             </Section>
 
             {/* ── 4. Key Management API ── */}
@@ -313,7 +291,6 @@ Content-Type: application/json
                 headers={['Vendor', 'Input Tokens', 'Output Tokens']}
                 rows={[
                   ['Claude / YourAgent', 'usage.input_tokens', 'usage.output_tokens'],
-                  ['Yunwu (OpenAI)', 'usage.prompt_tokens', 'usage.completion_tokens'],
                 ]}
               />
               <div className="mt-3">
@@ -324,25 +301,8 @@ Content-Type: application/json
                 rows={[
                   ['Claude', 'Opus 4.6/4, Sonnet 4.6/4, Haiku 4.5', 'Anthropic official'],
                   ['YourAgent', 'Same as Claude', 'Claude price x 4%'],
-                  ['Yunwu', 'See below (multi-vendor)', 'Per-vendor official pricing'],
                 ]}
               />
-              <div className="mt-4">
-                <P>{d.yunwuModelsNote}</P>
-              </div>
-              <Table
-                headers={['Provider', 'Models', 'Pricing Source']}
-                rows={[
-                  ['OpenAI', 'GPT-4.1, 4.1-mini, 4.1-nano, GPT-4o, 4o-mini, o3, o4-mini, o1, o1-mini', 'OpenAI official'],
-                  ['Google', 'Gemini 2.5 Pro, 2.5 Flash, 2.0 Flash', 'Google official'],
-                  ['Claude (via Yunwu)', 'Opus 4.6/4, Sonnet 4.6/4, Haiku 4.5', 'Anthropic official'],
-                  ['xAI', 'Grok 3, Grok 3 mini', 'xAI official'],
-                  ['DeepSeek', 'DeepSeek Chat, DeepSeek Reasoner', 'DeepSeek official'],
-                ]}
-              />
-              <div className="mt-3 p-3 bg-[var(--surface-raised)] rounded-[var(--radius-md)] border border-[var(--border)]">
-                <P>{d.geminiRoutingNote}</P>
-              </div>
             </Section>
 
             {/* ── 11. Master Key Rotation ── */}
@@ -350,14 +310,11 @@ Content-Type: application/json
               <P>{d.masterKeyDesc}</P>
               <Block>{`# Environment variable example:
 CLAUDE_MASTER_KEY=sk-ant-key1,sk-ant-key2,sk-ant-key3
-YUNWU_MASTER_KEY=sk-yunwu-main1,sk-yunwu-main2
-YUNWU_MASTER_KEY_GEMINI=sk-yunwu-gemini1   # optional, for Gemini models
 
 # Token Bank will:
 # 1. Round-robin between keys on each request
 # 2. On 401/429/5xx, automatically try the next key
-# 3. Route gemini-* models to YUNWU_MASTER_KEY_GEMINI if set
-# 4. Log which key succeeded: [proxy] claude ✓ succeeded with master-key#1`}</Block>
+# 3. Log which key succeeded: [proxy] claude ✓ succeeded with master-key#1`}</Block>
             </Section>
 
             {/* ── 12. Webhook ── */}
@@ -406,8 +363,7 @@ FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/xxx
               <Block>{`sk-vault-{vendor}-{random8chars}
 
 sk-vault-claude-a1b2c3d4
-sk-vault-youragent-z9y8x7w6
-sk-vault-yunwu-m3n4o5p6`}</Block>
+sk-vault-youragent-z9y8x7w6`}</Block>
             </Section>
 
           </div>

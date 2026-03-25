@@ -1,4 +1,4 @@
-export type VendorId = 'claude' | 'youragent' | 'yunwu';
+export type VendorId = 'claude' | 'youragent';
 export type AuthStyle = 'x-api-key' | 'bearer';
 export type KeyScope = 'internal' | 'external';
 

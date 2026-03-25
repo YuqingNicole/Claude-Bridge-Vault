@@ -1,6 +1,6 @@
 # Claude Bridge Vault
 
-A multi-vendor AI API gateway + dashboard. Issues **Sub-Keys** (`sk-vault-...`) to proxy requests to upstream AI vendors (Claude / YourAgent / Yunwu), with per-key usage tracking, quota, and expiry management.
+A multi-vendor AI API gateway + dashboard. Issues **Sub-Keys** (`sk-vault-...`) to proxy requests to upstream AI vendors (Claude / YourAgent), with per-key usage tracking, quota, and expiry management.
 
 ## Features
 
@@ -20,7 +20,6 @@ A multi-vendor AI API gateway + dashboard. Issues **Sub-Keys** (`sk-vault-...`) 
 |--------|-----------|-------------|--------|
 | Claude | `/api/v1/claude` | `x-api-key` | Anthropic Messages |
 | YourAgent | `/api/v1/youragent` | `x-api-key` | Anthropic Messages |
-| Yunwu | `/api/v1/yunwu` | `x-api-key` | OpenAI Chat Completions |
 
 ## Setup
 
@@ -39,7 +38,6 @@ UPSTASH_REDIS_REST_TOKEN=...
 # Vendor master keys
 CLAUDE_MASTER_KEY=sk-ant-...
 YOURAGENT_MASTER_KEY=...
-YUNWU_MASTER_KEY=...
 
 # Optional
 NEXT_PUBLIC_BASE_URL=https://yourdomain.com
@@ -87,18 +85,6 @@ curl https://yourdomain.com/api/v1/claude \
   }'
 ```
 
-### Yunwu (OpenAI-compatible)
-
-```bash
-curl https://yourdomain.com/api/v1/yunwu \
-  -H "x-api-key: sk-vault-yunwu-xxxxxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4o",
-    "messages": [{"role": "user", "content": "Hello"}]
-  }'
-```
-
 ## Pages
 
 | Path | Description |
@@ -113,7 +99,7 @@ curl https://yourdomain.com/api/v1/yunwu \
 ## Security Notes
 
 - `ADMIN_SECRET` protects all `/api/v1/manage/*` endpoints via middleware
-- Sub-Keys are scoped to a single vendor — a `sk-vault-claude-*` key cannot call `/api/v1/yunwu`
+- Sub-Keys are scoped to a single vendor — a `sk-vault-claude-*` key cannot call `/api/v1/youragent`
 - Rate limiting is enforced per Sub-Key (not per IP)
 - Master keys never leave the server — Sub-Keys are what you distribute
 

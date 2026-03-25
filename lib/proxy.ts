@@ -14,24 +14,12 @@ export function buildUpstreamRequest(
 ): UpstreamRequest {
   const config = VENDOR_CONFIG[vendor];
 
-  if (vendor === 'claude' || vendor === 'youragent') {
-    return {
-      url: config.endpoint,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': masterKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: rawBody,
-    };
-  }
-
-  // yunwu (OpenAI-compatible)
   return {
     url: config.endpoint,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${masterKey}`,
+      'x-api-key': masterKey,
+      'anthropic-version': '2023-06-01',
     },
     body: rawBody,
   };
