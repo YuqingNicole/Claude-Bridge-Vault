@@ -80,13 +80,6 @@ async function extractTokensFromSSE(
               const usage = evt.usage as Record<string, number> | undefined;
               if (usage?.output_tokens) outputTokens = usage.output_tokens;
             }
-          } else if (vendor === 'yunwu') {
-            // OpenAI-compatible SSE: final chunk contains usage with prompt_tokens + completion_tokens
-            const usage = evt.usage as Record<string, number> | undefined;
-            if (usage) {
-              if (typeof usage.prompt_tokens === 'number') inputTokens = usage.prompt_tokens;
-              if (typeof usage.completion_tokens === 'number') outputTokens = usage.completion_tokens;
-            }
           }
         } catch { /* ignore malformed lines */ }
       }
@@ -106,16 +99,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
   const subKey = req.headers.get('x-api-key');
 
-  // Resolve master keys — for yunwu, defer until we know the model so we can
-  // route gemini-* models to YUNWU_MASTER_KEY_GEMINI.
-  // For other vendors, resolve immediately.
-  function resolveMasterKeys(model?: string): string[] {
-    if (vendor === 'yunwu' && model?.startsWith('gemini')) {
-      const geminiKeys = (process.env.YUNWU_MASTER_KEY_GEMINI ?? '')
-        .split(',').map(k => k.trim()).filter(Boolean);
-      if (geminiKeys.length > 0) return geminiKeys;
-      // Fall back to default yunwu key if gemini-specific key not set
-    }
+  function resolveMasterKeys(_model?: string): string[] {
     return (process.env[`${vendor.toUpperCase()}_MASTER_KEY`] ?? '')
       .split(',').map(k => k.trim()).filter(Boolean);
   }
@@ -196,17 +180,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
         parsed.model = keyModel;
         rawBody = JSON.stringify(parsed);
         model = keyModel;
-      } catch { /* keep original body */ }
-    }
-
-    // Inject stream_options for OpenAI-compatible vendors so usage is included in final SSE chunk
-    if (streaming && vendor === 'yunwu') {
-      try {
-        const parsed = JSON.parse(rawBody);
-        if (!parsed.stream_options?.include_usage) {
-          parsed.stream_options = { ...parsed.stream_options, include_usage: true };
-          rawBody = JSON.stringify(parsed);
-        }
       } catch { /* keep original body */ }
     }
 
